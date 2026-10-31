@@ -28,12 +28,23 @@ def analyze_sample_log():
     )
 
 
+@detection_api.get("/api/demo/web-analysis")
+def analyze_sample_web_log():
+    """Parse synthetic web requests and report SQL injection patterns."""
+    project_root = Path(__file__).resolve().parents[3]
+    sample_path = project_root / "data" / "samples" / "access.log"
+    events = list(read_log_file(sample_path))
+    findings = analyze_events(events)
+    return jsonify(event_count=len(events), finding_count=len(findings), findings=findings)
+
+
 @detection_api.post("/api/demo/analyze")
 def analyze_and_save_sample():
-    """Analyze the bundled sample log and persist generated alerts."""
+    """Analyze both bundled sample logs and persist generated alerts."""
     project_root = Path(__file__).resolve().parents[3]
-    sample_path = project_root / "data" / "samples" / "auth.log"
-    events = list(read_log_file(sample_path))
+    samples_dir = project_root / "data" / "samples"
+    events = list(read_log_file(samples_dir / "auth.log"))
+    events.extend(read_log_file(samples_dir / "access.log"))
     alerts = create_alerts(analyze_events(events))
     save_alerts(current_app.config["DATABASE_PATH"], alerts)
     return jsonify(event_count=len(events), alert_count=len(alerts), alerts=alerts), 201

@@ -31,6 +31,7 @@ export default function App() {
 
   const highCount = alerts.filter((alert) => alert.severity === 'high').length
   const openCount = alerts.filter((alert) => alert.status === 'open').length
+  const detectionRuleCount = new Set(alerts.map((alert) => alert.rule)).size || 2
 
   return (
     <div className="app-shell">
@@ -60,7 +61,7 @@ export default function App() {
           <article className="stat-card"><div className="stat-label">TOTAL ALERTS <span className="stat-symbol">◉</span></div><div className="stat-value">{alerts.length}</div><div className="stat-note">Saved in local database</div></article>
           <article className="stat-card"><div className="stat-label">OPEN ALERTS <span className="stat-symbol amber">◷</span></div><div className="stat-value">{openCount}</div><div className="stat-note">Require analyst review</div></article>
           <article className="stat-card"><div className="stat-label">HIGH SEVERITY <span className="stat-symbol red">⬡</span></div><div className="stat-value">{highCount}</div><div className="stat-note">Across saved alerts</div></article>
-          <article className="stat-card"><div className="stat-label">DETECTION RULES <span className="stat-symbol blue">⌘</span></div><div className="stat-value">01</div><div className="stat-note">Rule-based monitoring</div></article>
+          <article className="stat-card"><div className="stat-label">DETECTION RULES <span className="stat-symbol blue">⌘</span></div><div className="stat-value">{String(detectionRuleCount).padStart(2, '0')}</div><div className="stat-note">Rule-based monitoring</div></article>
         </section>
 
         <section className="panel">
@@ -68,14 +69,15 @@ export default function App() {
           {error && <div className="message error">{error}</div>}
           <div className="table-wrap">
             <table>
-              <thead><tr><th>ALERT</th><th>SEVERITY</th><th>SOURCE IP</th><th>ATTEMPTS</th><th>STATUS</th><th>LAST SEEN</th></tr></thead>
+              <thead><tr><th>ALERT</th><th>SEVERITY</th><th>SOURCE IP</th><th>ACTIVITY</th><th>EVIDENCE</th><th>STATUS</th><th>LAST SEEN</th></tr></thead>
               <tbody>
-                {loading ? <tr><td className="empty-state" colSpan="6">Loading alerts…</td></tr> : alerts.length === 0 ? <tr><td className="empty-state" colSpan="6">No saved alerts yet. Run the sample analysis to populate this dashboard.</td></tr> : alerts.map((alert) => (
+                {loading ? <tr><td className="empty-state" colSpan="7">Loading alerts…</td></tr> : alerts.length === 0 ? <tr><td className="empty-state" colSpan="7">No saved alerts yet. Run the sample analysis to populate this dashboard.</td></tr> : alerts.map((alert) => (
                   <tr key={alert.id}>
                     <td><div className="alert-title">{alert.title}</div><div className="alert-subtitle">Rule: {alert.rule.replaceAll('_', ' ')}</div></td>
                     <td><span className={`severity ${alert.severity}`}>{alert.severity}</span></td>
                     <td className="mono">{alert.source_ip}</td>
-                    <td className="attempt-count">{alert.failed_attempts}</td>
+                    <td className="attempt-count">{alert.event_count} {alert.count_label}</td>
+                    <td className="evidence-cell">{alert.details?.path ?? alert.details?.matched_patterns?.join(', ').replaceAll('_', ' ') ?? (alert.usernames?.length ? `Users: ${alert.usernames.join(', ')}` : '—')}</td>
                     <td><span className="status"><span />{alert.status}</span></td>
                     <td className="date-cell">{formatDate(alert.last_seen)}</td>
                   </tr>

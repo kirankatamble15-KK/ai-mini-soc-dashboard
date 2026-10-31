@@ -29,6 +29,10 @@ Milestone 6: SQLite stores alerts in the local Flask `instance/soc.db` database.
 
 Milestone 7: React dashboard in `frontend/` reads saved alerts from the Flask API through a Vite development proxy.
 
+Milestone 8: the parser accepts synthetic web request events, and a starter SQL injection rule checks decoded request paths for `UNION SELECT` and quoted numeric `OR/AND` conditions. Inspect its output at `GET /api/demo/web-analysis`.
+
+Milestone 9: sample analysis saves both login and web request alerts. The dashboard shows each alert's activity count and rule-specific evidence. SQLite adds new fields without removing existing alert records.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
@@ -40,7 +44,7 @@ pip install -r requirements.txt
 python -m flask --app app.main run --debug
 ```
 
-The health endpoint is available at `http://127.0.0.1:5000/api/health`. The sample analysis endpoint is at `http://127.0.0.1:5000/api/demo/analysis`. To save alerts, send a `POST` request to `http://127.0.0.1:5000/api/demo/analyze`, then view them at `http://127.0.0.1:5000/api/alerts`.
+The health endpoint is available at `http://127.0.0.1:5000/api/health`. The sample analysis endpoint is at `http://127.0.0.1:5000/api/demo/analysis`; web request analysis is at `http://127.0.0.1:5000/api/demo/web-analysis`. To save alerts from both sample logs, send a `POST` request to `http://127.0.0.1:5000/api/demo/analyze`, then view them at `http://127.0.0.1:5000/api/alerts`.
 
 ## Start the dashboard
 

@@ -2,7 +2,10 @@
 
 
 def severity_for_finding(finding: dict) -> str:
-    """Assign severity based on the number of failed login attempts."""
+    """Assign a starter severity based on the type and size of a finding."""
+    if finding.get("rule") == "sql_injection_pattern":
+        return "medium"
+
     attempts = finding.get("failed_attempts", 0)
     if attempts >= 10:
         return "high"
