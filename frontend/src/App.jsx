@@ -9,6 +9,7 @@ export default function App() {
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
 
   async function loadAlerts() {
     setLoading(true)
@@ -22,6 +23,23 @@ export default function App() {
       setError('Could not load alerts. Check that the Flask backend is running.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function updateAlertStatus(alertId, status) {
+    setActionError('')
+    try {
+      const response = await fetch(`/api/alerts/${alertId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      setAlerts((current) => current.map((alert) => (
+        alert.id === alertId ? { ...alert, status } : alert
+      )))
+    } catch (err) {
+      setActionError('Could not update alert status. Check that the Flask backend is running.')
     }
   }
 
@@ -67,6 +85,7 @@ export default function App() {
         <section className="panel">
           <div className="panel-heading"><div><h2>Recent alerts</h2><p>Detection results generated from your log data</p></div><span className="result-count">{alerts.length} RECORD{alerts.length === 1 ? '' : 'S'}</span></div>
           {error && <div className="message error">{error}</div>}
+          {actionError && <div className="message error">{actionError}</div>}
           <div className="table-wrap">
             <table>
               <thead><tr><th>ALERT</th><th>SEVERITY</th><th>SOURCE IP</th><th>ACTIVITY</th><th>EVIDENCE</th><th>STATUS</th><th>LAST SEEN</th></tr></thead>
@@ -78,7 +97,11 @@ export default function App() {
                     <td className="mono">{alert.source_ip}</td>
                     <td className="attempt-count">{alert.event_count} {alert.count_label}</td>
                     <td className="evidence-cell">{alert.details?.path ?? alert.details?.matched_patterns?.join(', ').replaceAll('_', ' ') ?? (alert.usernames?.length ? `Users: ${alert.usernames.join(', ')}` : '—')}</td>
-                    <td><span className="status"><span />{alert.status}</span></td>
+                    <td><select className={`status-select ${alert.status}`} aria-label={`Status for ${alert.title}`} value={alert.status} onChange={(event) => updateAlertStatus(alert.id, event.target.value)}>
+                      <option value="open">Open</option>
+                      <option value="acknowledged">Acknowledged</option>
+                      <option value="resolved">Resolved</option>
+                    </select></td>
                     <td className="date-cell">{formatDate(alert.last_seen)}</td>
                   </tr>
                 ))}

@@ -2,15 +2,16 @@
 
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, jsonify, request
 
 from app.alerts.alert_manager import create_alerts
-from app.database.connection import list_alerts, save_alerts
+from app.database.connection import list_alerts, save_alerts, update_alert_status
 from app.detection.detection_engine import analyze_events
 from app.ingestion.log_reader import read_log_file
 
 
 detection_api = Blueprint("detection_api", __name__)
+ALERT_STATUSES = {"open", "acknowledged", "resolved"}
 
 
 @detection_api.get("/api/demo/analysis")
@@ -55,3 +56,21 @@ def get_alerts():
     """Return saved alerts from the local SQLite database."""
     alerts = list_alerts(current_app.config["DATABASE_PATH"])
     return jsonify(alert_count=len(alerts), alerts=alerts)
+
+
+@detection_api.patch("/api/alerts/<alert_id>")
+def change_alert_status(alert_id: str):
+    """Change an alert's analyst workflow status."""
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify(error="request body must be a JSON object"), 400
+    status = payload.get("status")
+    if status not in ALERT_STATUSES:
+        return jsonify(
+            error="status must be one of: open, acknowledged, resolved"
+        ), 400
+
+    found = update_alert_status(current_app.config["DATABASE_PATH"], alert_id, status)
+    if not found:
+        return jsonify(error="alert not found"), 404
+    return jsonify(id=alert_id, status=status)

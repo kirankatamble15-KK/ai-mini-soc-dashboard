@@ -88,3 +88,12 @@ def list_alerts(path: str | Path) -> list[dict]:
         alert["usernames"] = json.loads(alert["usernames"])
         alert["details"] = json.loads(alert["details"])
     return alerts
+
+
+def update_alert_status(path: str | Path, alert_id: str, status: str) -> bool:
+    """Update one alert and report whether its ID exists."""
+    with connect_database(path) as connection:
+        cursor = connection.execute(
+            "UPDATE alerts SET status = ? WHERE id = ?", (status, alert_id)
+        )
+        return cursor.rowcount > 0

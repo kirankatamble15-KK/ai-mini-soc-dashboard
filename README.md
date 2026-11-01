@@ -33,6 +33,8 @@ Milestone 8: the parser accepts synthetic web request events, and a starter SQL 
 
 Milestone 9: sample analysis saves both login and web request alerts. The dashboard shows each alert's activity count and rule-specific evidence. SQLite adds new fields without removing existing alert records.
 
+Milestone 10: analysts can set saved alerts to `open`, `acknowledged`, or `resolved` from the dashboard. `PATCH /api/alerts/<alert_id>` validates and stores the status in SQLite.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
