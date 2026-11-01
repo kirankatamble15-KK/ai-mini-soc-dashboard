@@ -1,8 +1,9 @@
-"""SQLite connection and alert persistence helpers."""
+"""SQLite connection, schema migration, and security data persistence helpers."""
 
 import json
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 
 def connect_database(path: str | Path) -> sqlite3.Connection:
@@ -13,8 +14,9 @@ def connect_database(path: str | Path) -> sqlite3.Connection:
 
 
 def initialize_database(path: str | Path) -> None:
-    """Create the alerts table and add fields required by newer alert types."""
+    """Create alerts and events tables and apply progressive schema migrations."""
     with connect_database(path) as connection:
+        # Core alerts table
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS alerts (
@@ -30,10 +32,34 @@ def initialize_database(path: str | Path) -> None:
                 rule TEXT NOT NULL,
                 event_count INTEGER NOT NULL DEFAULT 0,
                 count_label TEXT NOT NULL DEFAULT 'events',
-                details TEXT NOT NULL DEFAULT '{}'
+                details TEXT NOT NULL DEFAULT '{}',
+                mitre_tactic TEXT NOT NULL DEFAULT 'Unknown',
+                mitre_technique_id TEXT NOT NULL DEFAULT 'N/A',
+                mitre_technique_name TEXT NOT NULL DEFAULT 'N/A',
+                mitre_url TEXT NOT NULL DEFAULT ''
             )
             """
         )
+
+        # Raw security events table for log exploration and incident drill-down
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                source_ip TEXT NOT NULL,
+                username TEXT,
+                success INTEGER,
+                method TEXT,
+                path TEXT,
+                status_code INTEGER,
+                raw_json TEXT NOT NULL
+            )
+            """
+        )
+
+        # Check existing alert table columns and dynamically migrate if needed
         columns = {
             row["name"]
             for row in connection.execute("PRAGMA table_info(alerts)").fetchall()
@@ -42,6 +68,10 @@ def initialize_database(path: str | Path) -> None:
             "event_count": "ALTER TABLE alerts ADD COLUMN event_count INTEGER NOT NULL DEFAULT 0",
             "count_label": "ALTER TABLE alerts ADD COLUMN count_label TEXT NOT NULL DEFAULT 'events'",
             "details": "ALTER TABLE alerts ADD COLUMN details TEXT NOT NULL DEFAULT '{}'",
+            "mitre_tactic": "ALTER TABLE alerts ADD COLUMN mitre_tactic TEXT NOT NULL DEFAULT 'Unknown'",
+            "mitre_technique_id": "ALTER TABLE alerts ADD COLUMN mitre_technique_id TEXT NOT NULL DEFAULT 'N/A'",
+            "mitre_technique_name": "ALTER TABLE alerts ADD COLUMN mitre_technique_name TEXT NOT NULL DEFAULT 'N/A'",
+            "mitre_url": "ALTER TABLE alerts ADD COLUMN mitre_url TEXT NOT NULL DEFAULT ''",
         }
         for column, statement in migrations.items():
             if column not in columns:
@@ -60,17 +90,23 @@ def save_alerts(path: str | Path, alerts: list[dict]) -> None:
             """
             INSERT INTO alerts (
                 id, title, severity, status, source_ip, failed_attempts,
-                usernames, first_seen, last_seen, rule, event_count, count_label, details
+                usernames, first_seen, last_seen, rule, event_count, count_label,
+                details, mitre_tactic, mitre_technique_id, mitre_technique_name, mitre_url
             ) VALUES (
                 :id, :title, :severity, :status, :source_ip, :failed_attempts,
-                :usernames, :first_seen, :last_seen, :rule, :event_count, :count_label, :details
+                :usernames, :first_seen, :last_seen, :rule, :event_count, :count_label,
+                :details, :mitre_tactic, :mitre_technique_id, :mitre_technique_name, :mitre_url
             )
             """,
             [
                 {
                     **alert,
-                    "usernames": json.dumps(alert["usernames"]),
-                    "details": json.dumps(alert["details"]),
+                    "usernames": json.dumps(alert.get("usernames", [])),
+                    "details": json.dumps(alert.get("details", {})),
+                    "mitre_tactic": alert.get("mitre_tactic", "Unknown"),
+                    "mitre_technique_id": alert.get("mitre_technique_id", "N/A"),
+                    "mitre_technique_name": alert.get("mitre_technique_name", "N/A"),
+                    "mitre_url": alert.get("mitre_url", ""),
                 }
                 for alert in alerts
             ],
@@ -91,9 +127,82 @@ def list_alerts(path: str | Path) -> list[dict]:
 
 
 def update_alert_status(path: str | Path, alert_id: str, status: str) -> bool:
-    """Update one alert and report whether its ID exists."""
+    """Update one alert's workflow status and report whether its ID exists."""
     with connect_database(path) as connection:
         cursor = connection.execute(
             "UPDATE alerts SET status = ? WHERE id = ?", (status, alert_id)
         )
         return cursor.rowcount > 0
+
+
+def save_events(path: str | Path, events: list[dict[str, Any]]) -> None:
+    """Persist normalized raw events into SQLite for log search and investigation."""
+    with connect_database(path) as connection:
+        connection.executemany(
+            """
+            INSERT INTO events (
+                timestamp, event_type, source_ip, username, success, method, path, status_code, raw_json
+            ) VALUES (
+                :timestamp, :event_type, :source_ip, :username, :success, :method, :path, :status_code, :raw_json
+            )
+            """,
+            [
+                {
+                    "timestamp": event["timestamp"],
+                    "event_type": event["event_type"],
+                    "source_ip": event["source_ip"],
+                    "username": event.get("username"),
+                    "success": 1 if event.get("success") is True else (0 if event.get("success") is False else None),
+                    "method": event.get("method"),
+                    "path": event.get("path"),
+                    "status_code": event.get("status_code"),
+                    "raw_json": json.dumps(event),
+                }
+                for event in events
+            ],
+        )
+
+
+def list_events(
+    path: str | Path,
+    event_type: str | None = None,
+    source_ip: str | None = None,
+    search: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[dict[str, Any]]:
+    """Query ingested logs with filtering options for the Log Explorer."""
+    query = "SELECT * FROM events WHERE 1=1"
+    params: list[Any] = []
+
+    if event_type:
+        query += " AND event_type = ?"
+        params.append(event_type)
+    if source_ip:
+        query += " AND source_ip = ?"
+        params.append(source_ip)
+    if search:
+        query += " AND (path LIKE ? OR username LIKE ? OR source_ip LIKE ?)"
+        wildcard = f"%{search}%"
+        params.extend([wildcard, wildcard, wildcard])
+
+    query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+
+    with connect_database(path) as connection:
+        rows = connection.execute(query, params).fetchall()
+
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["raw"] = json.loads(item["raw_json"])
+        del item["raw_json"]
+        result.append(item)
+    return result
+
+
+def count_events(path: str | Path) -> int:
+    """Return the total count of stored events."""
+    with connect_database(path) as connection:
+        row = connection.execute("SELECT COUNT(*) as cnt FROM events").fetchone()
+        return row["cnt"] if row else 0

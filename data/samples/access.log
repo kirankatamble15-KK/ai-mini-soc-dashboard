@@ -2,3 +2,6 @@
 {"timestamp":"2026-10-30T10:03:04Z","event_type":"web_request","source_ip":"198.51.100.77","method":"GET","path":"/login?user=admin%27%20OR%201%3D1--","status_code":401}
 {"timestamp":"2026-10-30T10:04:26Z","event_type":"web_request","source_ip":"203.0.113.88","method":"GET","path":"/search?q=wireless+headphones","status_code":200}
 {"timestamp":"2026-10-30T10:05:39Z","event_type":"web_request","source_ip":"192.0.2.55","method":"GET","path":"/items?id=1%20UNION%20SELECT%20password","status_code":400}
+{"timestamp":"2026-10-30T10:08:14Z","event_type":"web_request","source_ip":"198.51.100.120","method":"GET","path":"/static/../../../../etc/passwd","status_code":403}
+{"timestamp":"2026-10-30T10:09:50Z","event_type":"web_request","source_ip":"198.51.100.201","method":"POST","path":"/api/tools/ping?host=127.0.0.1;whoami","status_code":500}
+{"timestamp":"2026-10-30T10:11:02Z","event_type":"web_request","source_ip":"203.0.113.199","method":"GET","path":"/admin?scanner=nikto-test","status_code":404}
