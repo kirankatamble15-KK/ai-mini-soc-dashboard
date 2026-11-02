@@ -8,6 +8,15 @@ def severity_for_finding(finding: dict) -> str:
     """
     rule = finding.get("rule", "")
 
+    # Machine Learning Anomaly confidence scoring
+    if rule == "ml_behavioral_anomaly":
+        score = finding.get("anomaly_score", 0.6)
+        if score >= 0.85:
+            return "high"
+        if score >= 0.70:
+            return "medium"
+        return "low"
+
     # Critical severity: remote code execution indicators
     if rule == "command_injection_pattern":
         return "critical"
@@ -17,7 +26,6 @@ def severity_for_finding(finding: dict) -> str:
         return "high"
 
     if rule == "sql_injection_pattern":
-        # If the web app returned 200 OK to a SQL injection payload, higher risk of breach
         if finding.get("status_code") == 200:
             return "high"
         return "medium"

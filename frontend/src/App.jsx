@@ -10,8 +10,10 @@ export default function App() {
   const [alerts, setAlerts] = useState([])
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState(null)
+  const [mlStatus, setMlStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
+  const [retraining, setRetraining] = useState(false)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -24,9 +26,10 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const [alertsRes, statsRes] = await Promise.all([
+      const [alertsRes, statsRes, mlRes] = await Promise.all([
         fetch('/api/alerts'),
         fetch('/api/stats'),
+        fetch('/api/ml/status'),
       ])
       if (!alertsRes.ok) throw new Error(`Alerts server returned ${alertsRes.status}`)
       const alertsData = await alertsRes.json()
@@ -35,6 +38,11 @@ export default function App() {
       if (statsRes.ok) {
         const statsData = await statsRes.json()
         setStats(statsData)
+      }
+
+      if (mlRes.ok) {
+        const mlData = await mlRes.json()
+        setMlStatus(mlData)
       }
     } catch (err) {
       setError('Could not load alerts. Check that the Flask backend is running.')
@@ -69,13 +77,35 @@ export default function App() {
       const res = await fetch('/api/demo/analyze', { method: 'POST' })
       if (!res.ok) throw new Error(`Server returned ${res.status}`)
       const data = await res.json()
-      setSuccessMsg(`Ingested ${data.event_count} events and generated ${data.alert_count} alerts!`)
+      setSuccessMsg(`Ingested ${data.event_count} events and generated ${data.alert_count} alerts (Rule-based & AI Anomaly)!`)
       await loadAlerts()
       if (currentTab === 'logs') await loadLogs()
     } catch (err) {
       setActionError('Analysis execution failed. Check backend console.')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  async function handleRetrainModel() {
+    setRetraining(true)
+    setError('')
+    setActionError('')
+    setSuccessMsg('')
+    try {
+      const res = await fetch('/api/ml/train', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sample_count: 400 }),
+      })
+      if (!res.ok) throw new Error(`Server returned ${res.status}`)
+      const data = await res.json()
+      setSuccessMsg(`Isolation Forest retrained successfully on ${data.metrics?.training_samples} baseline samples!`)
+      await loadAlerts()
+    } catch (err) {
+      setActionError('ML model training failed.')
+    } finally {
+      setRetraining(false)
     }
   }
 
@@ -108,7 +138,7 @@ export default function App() {
 
   const highOrCriticalCount = alerts.filter((a) => a.severity === 'high' || a.severity === 'critical').length
   const openCount = alerts.filter((a) => a.status === 'open').length
-  const detectionRuleCount = new Set(alerts.map((a) => a.rule)).size || 4
+  const mlAnomalyCount = alerts.filter((a) => a.rule === 'ml_behavioral_anomaly').length
   const totalEvents = stats?.total_events ?? (logs.length || 0)
 
   return (
@@ -128,18 +158,17 @@ export default function App() {
           <span className="nav-icon">◫</span> Overview
         </button>
         <button
-          className={`nav-item ${currentTab === 'alerts' ? 'active' : ''}`}
-          onClick={() => setCurrentTab('overview')}
-        >
-          <span className="nav-icon">⌁</span> Alerts
-          <span className="nav-count">{alerts.length}</span>
-        </button>
-        <button
           className={`nav-item ${currentTab === 'logs' ? 'active' : ''}`}
           onClick={() => setCurrentTab('logs')}
         >
           <span className="nav-icon">▤</span> Log Explorer
           {totalEvents > 0 && <span className="nav-count">{totalEvents}</span>}
+        </button>
+        <button
+          className={`nav-item ${currentTab === 'ml' ? 'active' : ''}`}
+          onClick={() => setCurrentTab('ml')}
+        >
+          <span className="nav-icon">✦</span> AI / ML Engine
         </button>
         <div className="nav-item muted" title="Coming in next sprint">
           <span className="nav-icon">◎</span> Incidents & Playbooks
@@ -154,10 +183,16 @@ export default function App() {
         <header className="topbar">
           <div className="breadcrumb">
             Workspace <span>/</span>{' '}
-            <strong>{currentTab === 'overview' ? 'Threat Overview' : 'Log Explorer'}</strong>
+            <strong>
+              {currentTab === 'overview'
+                ? 'Threat Overview'
+                : currentTab === 'logs'
+                ? 'Log Explorer'
+                : 'AI / ML Anomaly Engine'}
+            </strong>
           </div>
           <div className="topbar-right">
-            <span className="live-dot" /> DETECTION ENGINE ACTIVE
+            <span className="live-dot" /> DETECTION & ML ENGINE ACTIVE
             <div className="avatar">SOC</div>
           </div>
         </header>
@@ -165,11 +200,19 @@ export default function App() {
         <section className="page-heading">
           <div>
             <div className="eyebrow">SECURITY OPERATIONS CENTER</div>
-            <h1>{currentTab === 'overview' ? 'Threat Detection Overview' : 'Security Log Explorer'}</h1>
+            <h1>
+              {currentTab === 'overview'
+                ? 'Threat Detection Overview'
+                : currentTab === 'logs'
+                ? 'Security Log Explorer'
+                : 'AI Anomaly Detection Engine'}
+            </h1>
             <p>
               {currentTab === 'overview'
-                ? 'Correlated detection rules, sliding time-windows & MITRE ATT&CK taxonomy.'
-                : 'Search, inspect, and drill-down into ingested authentication and web logs.'}
+                ? 'Correlated detection rules, sliding time-windows, and unsupervised ML anomaly detection.'
+                : currentTab === 'logs'
+                ? 'Search, inspect, and drill-down into ingested authentication and web logs.'
+                : 'Scikit-Learn Isolation Forest baseline modeling, feature vectors, and anomaly attribution.'}
             </p>
           </div>
           <div className="header-actions">
@@ -217,17 +260,17 @@ export default function App() {
               </article>
               <article className="stat-card">
                 <div className="stat-label">
+                  AI ANOMALIES <span className="stat-symbol" style={{ color: '#db9bf5' }}>✦</span>
+                </div>
+                <div className="stat-value">{mlAnomalyCount}</div>
+                <div className="stat-note">Isolation Forest outliers</div>
+              </article>
+              <article className="stat-card">
+                <div className="stat-label">
                   CRITICAL / HIGH <span className="stat-symbol red">⬡</span>
                 </div>
                 <div className="stat-value">{highOrCriticalCount}</div>
                 <div className="stat-note">Immediate priority</div>
-              </article>
-              <article className="stat-card">
-                <div className="stat-label">
-                  TOTAL LOGS INGESTED <span className="stat-symbol blue">⌘</span>
-                </div>
-                <div className="stat-value">{String(totalEvents).padStart(2, '0')}</div>
-                <div className="stat-note">Normalized security events</div>
               </article>
             </section>
 
@@ -235,7 +278,7 @@ export default function App() {
               <div className="panel-heading">
                 <div>
                   <h2>Active Security Alerts</h2>
-                  <p>Rule findings mapped to MITRE ATT&CK techniques with time-window correlation</p>
+                  <p>Rule findings mapped to MITRE ATT&CK techniques & AI Behavioral Anomalies</p>
                 </div>
                 <span className="result-count">{alerts.length} ALERTS</span>
               </div>
@@ -248,7 +291,7 @@ export default function App() {
                       <th>SEVERITY</th>
                       <th>SOURCE IP</th>
                       <th>ACTIVITY BURST</th>
-                      <th>EVIDENCE & PAYLOAD</th>
+                      <th>EVIDENCE & ATTRIBUTION</th>
                       <th>ANALYST STATUS</th>
                       <th>LAST DETECTED</th>
                     </tr>
@@ -272,9 +315,13 @@ export default function App() {
                           <td>
                             <div className="alert-title">{alert.title}</div>
                             <div className="alert-meta">
-                              <span className="alert-subtitle">
-                                {alert.rule.replaceAll('_', ' ')}
-                              </span>
+                              {alert.rule === 'ml_behavioral_anomaly' ? (
+                                <span className="ai-badge">✦ AI ANOMALY</span>
+                              ) : (
+                                <span className="alert-subtitle">
+                                  {alert.rule.replaceAll('_', ' ')}
+                                </span>
+                              )}
                               {alert.mitre_technique_id && alert.mitre_technique_id !== 'N/A' && (
                                 <a
                                   href={alert.mitre_url || `https://attack.mitre.org/techniques/${alert.mitre_technique_id.replace('.', '/')}`}
@@ -294,15 +341,23 @@ export default function App() {
                             </span>
                           </td>
                           <td className="mono">{alert.source_ip}</td>
-                          <td className="attempt-count">
-                            {alert.event_count} {alert.count_label}
+                          <td>
+                            {alert.rule === 'ml_behavioral_anomaly' ? (
+                              <span className="confidence-pill">{alert.event_count}% CONFIDENCE</span>
+                            ) : (
+                              <span className="attempt-count">
+                                {alert.event_count} {alert.count_label}
+                              </span>
+                            )}
                           </td>
                           <td className="evidence-cell">
-                            {alert.details?.path ??
-                              alert.details?.matched_patterns?.join(', ').replaceAll('_', ' ') ??
-                              (alert.usernames?.length
-                                ? `Users: ${alert.usernames.join(', ')}`
-                                : '—')}
+                            {alert.details?.explanation
+                              ? alert.details.explanation
+                              : alert.details?.path ??
+                                alert.details?.matched_patterns?.join(', ').replaceAll('_', ' ') ??
+                                (alert.usernames?.length
+                                  ? `Users: ${alert.usernames.join(', ')}`
+                                  : '—')}
                           </td>
                           <td>
                             <select
@@ -326,9 +381,9 @@ export default function App() {
 
               <div className="panel-footer">
                 <span>
-                  <span className="footer-dot" /> Live correlation engine active
+                  <span className="footer-dot" /> Live correlation & ML engine active
                 </span>
-                <span>SQLite Store • MITRE ATT&CK v14</span>
+                <span>SQLite Store • Scikit-Learn Isolation Forest</span>
               </div>
             </section>
           </>
@@ -418,6 +473,72 @@ export default function App() {
                 <span className="footer-dot" /> Showing top {logs.length} events
               </span>
               <span>Raw JSON payloads indexed</span>
+            </div>
+          </section>
+        )}
+
+        {/* AI / ML Engine Tab Content */}
+        {currentTab === 'ml' && (
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <h2>AI Anomaly Detection Engine (UEBA)</h2>
+                <p>Unsupervised Machine Learning model status, baseline configuration & XAI feature weights</p>
+              </div>
+              <button
+                className="primary-button"
+                onClick={handleRetrainModel}
+                disabled={retraining}
+              >
+                <span>✦</span> {retraining ? 'Retraining Model…' : 'Retrain Isolation Forest'}
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              <div className="model-info-grid">
+                <div className="model-card">
+                  <h3>Algorithm & Status</h3>
+                  <p><strong>Model:</strong> {mlStatus?.model_name || 'Isolation Forest'}</p>
+                  <p><strong>Status:</strong> {mlStatus?.is_trained ? 'Active & In-Memory' : 'Untrained'}</p>
+                  <p><strong>Expected Contamination:</strong> {(mlStatus?.contamination ?? 0.08) * 100}%</p>
+                </div>
+                <div className="model-card">
+                  <h3>Behavioral Profiling</h3>
+                  <p><strong>Baseline Domain:</strong> Daytime corporate authentication & standard REST APIs</p>
+                  <p><strong>Scoring:</strong> Decision distance mapped to 0-100% anomaly confidence</p>
+                </div>
+                <div className="model-card">
+                  <h3>Explainable AI (XAI)</h3>
+                  <p>Identifies exact feature z-score deviations behind each anomaly to eliminate black-box alert fatigue.</p>
+                </div>
+              </div>
+
+              <div className="model-card">
+                <h3>Extracted Feature Dimensions (7D Vector)</h3>
+                <p>Every event is converted into a continuous multidimensional behavioral vector:</p>
+                <div className="feature-chip-list">
+                  {(mlStatus?.features || [
+                    'hour_normalized',
+                    'is_off_hours',
+                    'is_failure_or_error',
+                    'payload_length',
+                    'endpoint_depth',
+                    'suspicious_char_ratio',
+                    'ip_burst_velocity',
+                  ]).map((feat) => (
+                    <span key={feat} className="feature-chip">
+                      {feat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="panel-footer">
+              <span>
+                <span className="footer-dot" style={{ background: '#db9bf5' }} /> Model: Scikit-Learn IsolationForest
+              </span>
+              <span>Serialized via Joblib</span>
             </div>
           </section>
         )}

@@ -104,6 +104,17 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .badge.status-ok { background: #183127; color: #62d8aa; }
 .badge.status-err { background: #3c1e24; color: #f58e94; }
 
+.ai-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font: 9px 'DM Mono',monospace; background: #2b1338; color: #db9bf5; border: 1px solid #5d257c; letter-spacing: .4px; font-weight: 600; box-shadow: 0 0 6px #db9bf522; }
+.confidence-pill { color: #db9bf5; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; }
+
+.model-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.model-card { border: 1px solid #233446; background: #111a24; border-radius: 8px; padding: 16px; }
+.model-card h3 { margin: 0 0 8px; font-size: 13px; color: #cfddec; }
+.model-card p { margin: 0; font-size: 11px; color: #7f91a5; line-height: 1.4; }
+.feature-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.feature-chip { padding: 3px 8px; border-radius: 4px; background: #192736; border: 1px solid #2a3d52; color: #9bb5cc; font: 9px 'DM Mono', monospace; }
+
+
 @media (max-width: 900px) {
   .sidebar { width: 190px; flex-basis: 190px; }
   .main-content { padding: 0 24px 20px; }

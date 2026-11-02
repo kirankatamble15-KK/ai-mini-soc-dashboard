@@ -7,12 +7,31 @@ from app.detection.mitre import get_mitre_metadata
 
 
 def create_alerts(findings: list[dict]) -> list[dict]:
-    """Build standardized alert records enriched with MITRE ATT&CK metadata."""
+    """Build standardized alert records enriched with MITRE ATT&CK metadata and ML evidence."""
     alerts = []
     for finding in findings:
         is_login_burst = "failed_attempts" in finding
-        evidence_fields = ("method", "path", "status_code", "matched_patterns")
+        is_ml_anomaly = finding.get("rule") == "ml_behavioral_anomaly"
+        evidence_fields = (
+            "method",
+            "path",
+            "status_code",
+            "matched_patterns",
+            "anomaly_score",
+            "explanation",
+            "raw_score",
+        )
         mitre_data = finding.get("mitre") or get_mitre_metadata(finding.get("rule", ""))
+
+        if is_ml_anomaly:
+            event_count = int(finding.get("anomaly_score", 0.75) * 100)
+            count_label = "% anomaly"
+        elif is_login_burst:
+            event_count = finding.get("failed_attempts", 1)
+            count_label = "failed logins"
+        else:
+            event_count = finding.get("event_count", 1)
+            count_label = "requests"
 
         alerts.append(
             {
@@ -23,8 +42,8 @@ def create_alerts(findings: list[dict]) -> list[dict]:
                 "source_ip": finding["source_ip"],
                 "failed_attempts": finding.get("failed_attempts", 0),
                 "usernames": finding.get("usernames", []),
-                "event_count": finding.get("failed_attempts", 1),
-                "count_label": "failed logins" if is_login_burst else "requests",
+                "event_count": event_count,
+                "count_label": count_label,
                 "details": {key: finding[key] for key in evidence_fields if key in finding},
                 "first_seen": finding.get("first_seen") or finding.get("timestamp"),
                 "last_seen": finding.get("last_seen") or finding.get("timestamp"),

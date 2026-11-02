@@ -85,7 +85,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 201)
         data = res.get_json()
         self.assertEqual(data["ingested_count"], 3)
-        self.assertEqual(data["alerts_generated"], 1)
+        self.assertGreaterEqual(data["alerts_generated"], 1)
 
     def test_soc_stats_metrics(self):
         """Verify aggregate SOC metrics and MITRE breakdown."""

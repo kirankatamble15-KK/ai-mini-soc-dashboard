@@ -183,3 +183,41 @@ def get_soc_metrics():
         mitre_tactics=dict(tactics),
         mitre_techniques=dict(techniques),
     )
+
+
+@detection_api.get("/api/ml/status")
+def get_ml_status():
+    """Return status and metadata of the Isolation Forest anomaly detector."""
+    from app.ml.anomaly_detector import get_anomaly_detector, DEFAULT_MODEL_PATH
+    from app.ml.features import FEATURE_NAMES
+
+    detector = get_anomaly_detector()
+    return jsonify(
+        model_name="Isolation Forest (Unsupervised Anomaly Detection)",
+        is_trained=detector.is_trained(),
+        model_path=str(DEFAULT_MODEL_PATH),
+        contamination=detector.contamination,
+        features=FEATURE_NAMES,
+    )
+
+
+@detection_api.post("/api/ml/train")
+def train_ml_model():
+    """Retrain the Isolation Forest model on demand."""
+    from app.ml.anomaly_detector import get_anomaly_detector, DEFAULT_MODEL_PATH
+    from app.ml.baseline_generator import generate_baseline_dataset
+
+    payload = request.get_json(silent=True) or {}
+    sample_count = int(payload.get("sample_count", 350))
+
+    baseline_events = generate_baseline_dataset(sample_count)
+    detector = get_anomaly_detector()
+    metrics = detector.train(baseline_events)
+    detector.save(DEFAULT_MODEL_PATH)
+
+    return jsonify(
+        status="success",
+        message="Isolation Forest retrained and saved successfully",
+        metrics=metrics,
+    )
+
