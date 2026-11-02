@@ -81,7 +81,7 @@ export default function App() {
       await loadAlerts()
       if (currentTab === 'logs') await loadLogs()
     } catch (err) {
-      setActionError('Analysis execution failed. Check backend console.')
+      setActionError(`Analysis execution failed (${err.message}). Check that the Flask backend is running on http://127.0.0.1:5000.`)
     } finally {
       setAnalyzing(false)
     }

@@ -110,3 +110,4 @@ def extract_dataset_features(events: list[dict[str, Any]]) -> np.ndarray:
         for idx, event in enumerate(events)
     ]
     return np.array(matrix, dtype=np.float32)
+

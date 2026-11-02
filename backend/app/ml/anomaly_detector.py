@@ -188,3 +188,4 @@ def get_anomaly_detector(model_path: Path | str = DEFAULT_MODEL_PATH) -> ThreatA
             detector.save(model_path)
         _detector_instance = detector
     return _detector_instance
+

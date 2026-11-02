@@ -69,3 +69,4 @@ def generate_baseline_dataset(sample_count: int = 500) -> list[dict[str, Any]]:
     # Chronologically sort the baseline
     events.sort(key=lambda e: e["timestamp"])
     return events
+
