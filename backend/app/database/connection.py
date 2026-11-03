@@ -206,3 +206,17 @@ def count_events(path: str | Path) -> int:
     with connect_database(path) as connection:
         row = connection.execute("SELECT COUNT(*) as cnt FROM events").fetchone()
         return row["cnt"] if row else 0
+
+
+def get_alert_by_id(path: str | Path, alert_id: str) -> dict | None:
+    """Fetch a single alert by its UUID.  Returns None when not found."""
+    with connect_database(path) as connection:
+        row = connection.execute(
+            "SELECT * FROM alerts WHERE id = ?", (alert_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    alert = dict(row)
+    alert["usernames"] = json.loads(alert["usernames"])
+    alert["details"] = json.loads(alert["details"])
+    return alert

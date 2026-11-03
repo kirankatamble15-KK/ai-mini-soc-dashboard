@@ -15,11 +15,8 @@ class ApiEndpointsTestCase(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.db_path = Path(self.temp_dir.name) / "test_soc.db"
-        initialize_database(self.db_path)
 
-        self.app = create_app()
-        self.app.config["DATABASE_PATH"] = self.db_path
-        self.app.config["TESTING"] = True
+        self.app = create_app({"TESTING": True, "DATABASE": str(self.db_path)})
         self.client = self.app.test_client()
 
     def tearDown(self):

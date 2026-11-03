@@ -7,8 +7,10 @@ from typing import Any
 from flask import Blueprint, current_app, jsonify, request
 
 from app.alerts.alert_manager import create_alerts
+from app.copilot.analyst import generate_incident_analysis
 from app.database.connection import (
     count_events,
+    get_alert_by_id,
     list_alerts,
     list_events,
     save_alerts,
@@ -57,7 +59,7 @@ def analyze_and_save_sample():
     events = list(read_log_file(samples_dir / "auth.log"))
     events.extend(read_log_file(samples_dir / "access.log"))
 
-    db_path = current_app.config["DATABASE_PATH"]
+    db_path = current_app.config["DATABASE"]
     # Save raw events for SOC log explorer & drill-down investigation
     save_events(db_path, events)
 
@@ -69,7 +71,7 @@ def analyze_and_save_sample():
 @detection_api.get("/api/alerts")
 def get_alerts():
     """Return saved alerts from the local SQLite database."""
-    alerts = list_alerts(current_app.config["DATABASE_PATH"])
+    alerts = list_alerts(current_app.config["DATABASE"])
     return jsonify(alert_count=len(alerts), alerts=alerts)
 
 
@@ -85,7 +87,7 @@ def change_alert_status(alert_id: str):
             error="status must be one of: open, acknowledged, resolved"
         ), 400
 
-    found = update_alert_status(current_app.config["DATABASE_PATH"], alert_id, status)
+    found = update_alert_status(current_app.config["DATABASE"], alert_id, status)
     if not found:
         return jsonify(error="alert not found"), 404
     return jsonify(id=alert_id, status=status)
@@ -100,7 +102,7 @@ def get_logs():
     limit = min(int(request.args.get("limit", 100)), 500)
     offset = int(request.args.get("offset", 0))
 
-    db_path = current_app.config["DATABASE_PATH"]
+    db_path = current_app.config["DATABASE"]
     events = list_events(
         db_path,
         event_type=event_type,
@@ -145,7 +147,7 @@ def ingest_live_logs():
     if not validated_events and errors:
         return jsonify(error="Validation failed", details=errors), 400
 
-    db_path = current_app.config["DATABASE_PATH"]
+    db_path = current_app.config["DATABASE"]
     save_events(db_path, validated_events)
 
     findings = analyze_events(validated_events)
@@ -164,7 +166,7 @@ def ingest_live_logs():
 @detection_api.get("/api/stats")
 def get_soc_metrics():
     """Return high-level SOC operations metrics and MITRE technique distribution."""
-    db_path = current_app.config["DATABASE_PATH"]
+    db_path = current_app.config["DATABASE"]
     alerts = list_alerts(db_path)
     total_events = count_events(db_path)
 
@@ -220,4 +222,33 @@ def train_ml_model():
         message="Isolation Forest retrained and saved successfully",
         metrics=metrics,
     )
+
+
+# ---------------------------------------------------------------------------
+# AI SOC Analyst Copilot
+# ---------------------------------------------------------------------------
+
+@detection_api.get("/api/alerts/<alert_id>/copilot")
+def get_copilot_analysis(alert_id: str):
+    """
+    Generate an AI-assisted incident analysis for a specific alert.
+
+    Returns a structured incident report containing:
+      - executive_summary  : plain-English triage narrative
+      - adversary_intent   : kill-chain + MITRE context
+      - kill_chain_stage   : Lockheed Martin kill-chain stage
+      - remediation_playbook : list of containment commands
+      - ioc_list           : structured indicators of compromise
+      - confidence_note    : extra context for ML-generated alerts
+
+    Real-world analogy: Splunk SOAR / Microsoft Sentinel Copilot auto-triage
+    """
+    db_path = current_app.config["DATABASE"]
+    alert = get_alert_by_id(db_path, alert_id)
+
+    if alert is None:
+        return jsonify(error=f"Alert '{alert_id}' not found"), 404
+
+    analysis = generate_incident_analysis(alert)
+    return jsonify(alert_id=alert_id, analysis=analysis)
 
