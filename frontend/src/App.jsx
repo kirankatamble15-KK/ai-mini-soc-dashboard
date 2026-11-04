@@ -11,6 +11,13 @@ export default function App() {
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState(null)
   const [mlStatus, setMlStatus] = useState(null)
+  const [copilotAlertId, setCopilotAlertId] = useState('')
+  const [copilotAnalysis, setCopilotAnalysis] = useState(null)
+  const [copilotLoading, setCopilotLoading] = useState(false)
+  const [analystNotes, setAnalystNotes] = useState([])
+  const [noteText, setNoteText] = useState('')
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [noteSaving, setNoteSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [retraining, setRetraining] = useState(false)
@@ -109,6 +116,56 @@ export default function App() {
     }
   }
 
+  async function loadCopilotAnalysis(alertId) {
+    if (!alertId) return
+    setCopilotAlertId(alertId)
+    setCopilotLoading(true)
+    setCopilotAnalysis(null)
+    setAnalystNotes([])
+    setNotesLoading(true)
+    setActionError('')
+    try {
+      const [analysisResponse, notesResponse] = await Promise.all([
+        fetch(`/api/alerts/${alertId}/copilot`),
+        fetch(`/api/alerts/${alertId}/notes`),
+      ])
+      if (!analysisResponse.ok || !notesResponse.ok) throw new Error('Incident data request failed')
+      const [analysisData, notesData] = await Promise.all([
+        analysisResponse.json(),
+        notesResponse.json(),
+      ])
+      setCopilotAnalysis(analysisData.analysis)
+      setAnalystNotes(notesData.notes ?? [])
+    } catch (err) {
+      setActionError('Could not generate incident analysis. Check that the Flask backend is running.')
+    } finally {
+      setCopilotLoading(false)
+      setNotesLoading(false)
+    }
+  }
+
+  async function saveAnalystNote(event) {
+    event.preventDefault()
+    if (!copilotAlertId || !noteText.trim()) return
+    setNoteSaving(true)
+    setActionError('')
+    try {
+      const response = await fetch(`/api/alerts/${copilotAlertId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: noteText }),
+      })
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      const data = await response.json()
+      setAnalystNotes((current) => [...current, data.note])
+      setNoteText('')
+    } catch (err) {
+      setActionError('Could not save the note. Check that the Flask backend is running.')
+    } finally {
+      setNoteSaving(false)
+    }
+  }
+
   async function updateAlertStatus(alertId, status) {
     setActionError('')
     try {
@@ -170,9 +227,12 @@ export default function App() {
         >
           <span className="nav-icon">✦</span> AI / ML Engine
         </button>
-        <div className="nav-item muted" title="Coming in next sprint">
+        <button
+          className={`nav-item ${currentTab === 'incidents' ? 'active' : ''}`}
+          onClick={() => setCurrentTab('incidents')}
+        >
           <span className="nav-icon">◎</span> Incidents & Playbooks
-        </div>
+        </button>
 
         <div className="sidebar-bottom">
           <div className="status-dot" /> Local SOC Environment
@@ -188,7 +248,9 @@ export default function App() {
                 ? 'Threat Overview'
                 : currentTab === 'logs'
                 ? 'Log Explorer'
-                : 'AI / ML Anomaly Engine'}
+                : currentTab === 'ml'
+                ? 'AI / ML Anomaly Engine'
+                : 'Incidents & Playbooks'}
             </strong>
           </div>
           <div className="topbar-right">
@@ -205,14 +267,18 @@ export default function App() {
                 ? 'Threat Detection Overview'
                 : currentTab === 'logs'
                 ? 'Security Log Explorer'
-                : 'AI Anomaly Detection Engine'}
+                : currentTab === 'ml'
+                ? 'AI Anomaly Detection Engine'
+                : 'Incident Investigation'}
             </h1>
             <p>
               {currentTab === 'overview'
                 ? 'Correlated detection rules, sliding time-windows, and unsupervised ML anomaly detection.'
                 : currentTab === 'logs'
                 ? 'Search, inspect, and drill-down into ingested authentication and web logs.'
-                : 'Scikit-Learn Isolation Forest baseline modeling, feature vectors, and anomaly attribution.'}
+                : currentTab === 'ml'
+                ? 'Scikit-Learn Isolation Forest baseline modeling, feature vectors, and anomaly attribution.'
+                : 'Review an alert with a clear summary, attacker context, indicators, and response guidance.'}
             </p>
           </div>
           <div className="header-actions">
@@ -539,6 +605,145 @@ export default function App() {
                 <span className="footer-dot" style={{ background: '#db9bf5' }} /> Model: Scikit-Learn IsolationForest
               </span>
               <span>Serialized via Joblib</span>
+            </div>
+          </section>
+        )}
+
+        {currentTab === 'incidents' && (
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <h2>SOC Analyst Copilot</h2>
+                <p>Template-based triage guidance generated from a saved alert</p>
+              </div>
+              <span className="result-count">{alerts.length} ALERTS AVAILABLE</span>
+            </div>
+
+            {alerts.length === 0 ? (
+              <div className="incident-empty">
+                No saved alerts yet. Go to Overview and click <strong>Ingest & Run Analysis</strong> first.
+              </div>
+            ) : (
+              <div className="incident-content">
+                <label className="incident-label" htmlFor="incident-alert">Choose an alert to investigate</label>
+                <div className="incident-picker">
+                  <select
+                    id="incident-alert"
+                    className="filter-select incident-select"
+                    value={copilotAlertId}
+                    onChange={(event) => loadCopilotAnalysis(event.target.value)}
+                  >
+                    <option value="">Select a saved alert…</option>
+                    {alerts.map((alert) => (
+                      <option key={alert.id} value={alert.id}>
+                        [{alert.severity.toUpperCase()}] {alert.title} — {alert.source_ip}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="primary-button"
+                    disabled={!copilotAlertId || copilotLoading}
+                    onClick={() => loadCopilotAnalysis(copilotAlertId)}
+                  >
+                    {copilotLoading ? 'Preparing analysis…' : 'Generate analysis'}
+                  </button>
+                </div>
+
+                {copilotLoading && <div className="incident-empty">Generating a report from the selected alert…</div>}
+                {copilotAnalysis && (
+                  <div className="incident-report">
+                    {copilotAnalysis.confidence_note && (
+                      <div className="copilot-note">{copilotAnalysis.confidence_note}</div>
+                    )}
+                    <div className="model-info-grid">
+                      <article className="model-card incident-summary">
+                        <h3>Incident summary</h3>
+                        <p>{copilotAnalysis.executive_summary}</p>
+                      </article>
+                      <article className="model-card">
+                        <h3>Attacker context</h3>
+                        <p>{copilotAnalysis.adversary_intent}</p>
+                        <p className="incident-kill-chain"><strong>Kill-chain stage:</strong> {copilotAnalysis.kill_chain_stage}</p>
+                      </article>
+                      <article className="model-card">
+                        <h3>MITRE ATT&CK</h3>
+                        <p><strong>{copilotAnalysis.mitre_technique_id || 'Not mapped'}</strong> {copilotAnalysis.mitre_technique_name}</p>
+                        <p>{copilotAnalysis.mitre_tactic || 'Tactic not provided'}</p>
+                      </article>
+                    </div>
+
+                    <div className="model-info-grid incident-detail-grid">
+                      <article className="model-card">
+                        <h3>Suggested response steps</h3>
+                        <ol className="playbook-list">
+                          {copilotAnalysis.remediation_playbook.map((step, index) => (
+                            <li key={`${index}-${step}`} className={step.startsWith('#') ? 'playbook-heading' : ''}>
+                              {step || '\u00a0'}
+                            </li>
+                          ))}
+                        </ol>
+                      </article>
+                      <article className="model-card">
+                        <h3>Indicators to review</h3>
+                        {copilotAnalysis.ioc_list.length ? (
+                          <ul className="ioc-list">
+                            {copilotAnalysis.ioc_list.map((ioc, index) => (
+                              <li key={`${ioc.type}-${index}`}>
+                                <span>{ioc.type}</span>
+                                <code>{ioc.value}</code>
+                                {ioc.context && <small>{ioc.context}</small>}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : <p>No indicators were included in this alert.</p>}
+                      </article>
+                    </div>
+                    <section className="notes-panel">
+                      <div className="notes-heading">
+                        <div>
+                          <h3>Analyst investigation notes</h3>
+                          <p>Record observations and follow-up actions for this alert.</p>
+                        </div>
+                        <span className="result-count">{analystNotes.length} NOTES</span>
+                      </div>
+                      <form className="note-form" onSubmit={saveAnalystNote}>
+                        <textarea
+                          value={noteText}
+                          onChange={(event) => setNoteText(event.target.value)}
+                          placeholder="Example: Checked the related logs; no successful login found."
+                          maxLength={2000}
+                          aria-label="Write an investigation note"
+                        />
+                        <div className="note-form-footer">
+                          <span>{noteText.length}/2000 characters</span>
+                          <button className="primary-button" type="submit" disabled={!noteText.trim() || noteSaving}>
+                            {noteSaving ? 'Saving note…' : 'Save note'}
+                          </button>
+                        </div>
+                      </form>
+                      {notesLoading ? (
+                        <p className="notes-empty">Loading saved notes…</p>
+                      ) : analystNotes.length === 0 ? (
+                        <p className="notes-empty">No notes for this alert yet.</p>
+                      ) : (
+                        <ol className="notes-list">
+                          {analystNotes.map((note) => (
+                            <li key={note.id}>
+                              <p>{note.note}</p>
+                              <time dateTime={note.created_at}>{formatDate(note.created_at)}</time>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </section>
+                    <p className="generated-at">Report generated {formatDate(copilotAnalysis.generated_at)} • Guidance is for analyst review.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="panel-footer">
+              <span><span className="footer-dot" /> Uses saved alert details</span>
+              <span>Local deterministic analysis • No external AI service</span>
             </div>
           </section>
         )}

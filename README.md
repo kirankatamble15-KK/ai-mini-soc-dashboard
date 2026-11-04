@@ -35,6 +35,10 @@ Milestone 9: sample analysis saves both login and web request alerts. The dashbo
 
 Milestone 10: analysts can set saved alerts to `open`, `acknowledged`, or `resolved` from the dashboard. `PATCH /api/alerts/<alert_id>` validates and stores the status in SQLite.
 
+Milestone 11: the Incidents & Playbooks dashboard view uses `GET /api/alerts/<alert_id>/copilot` to produce a local, template-based incident summary, MITRE ATT&CK context, response guidance, and indicators for a selected saved alert. The report is deterministic and intended to support analyst review; it does not call an external AI service or automatically block activity.
+
+Milestone 12: analysts can save investigation notes against an alert. Notes are stored in a dedicated SQLite table and are available through `GET /api/alerts/<alert_id>/notes`; create one with `POST /api/alerts/<alert_id>/notes` and a JSON body such as `{"note":"Reviewed related events; no successful login found."}`. Notes remain available when the dashboard reloads.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

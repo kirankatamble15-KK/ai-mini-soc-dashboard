@@ -59,6 +59,19 @@ def initialize_database(path: str | Path) -> None:
             """
         )
 
+        # Analyst-written investigation notes linked to saved alerts
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analyst_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alert_id TEXT NOT NULL,
+                note TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (alert_id) REFERENCES alerts(id) ON DELETE CASCADE
+            )
+            """
+        )
+
         # Check existing alert table columns and dynamically migrate if needed
         columns = {
             row["name"]
@@ -133,6 +146,26 @@ def update_alert_status(path: str | Path, alert_id: str, status: str) -> bool:
             "UPDATE alerts SET status = ? WHERE id = ?", (status, alert_id)
         )
         return cursor.rowcount > 0
+
+
+def add_analyst_note(path: str | Path, alert_id: str, note: str, created_at: str) -> dict:
+    """Save an analyst note and return the saved note with its database ID."""
+    with connect_database(path) as connection:
+        cursor = connection.execute(
+            "INSERT INTO analyst_notes (alert_id, note, created_at) VALUES (?, ?, ?)",
+            (alert_id, note, created_at),
+        )
+        return {"id": cursor.lastrowid, "alert_id": alert_id, "note": note, "created_at": created_at}
+
+
+def list_analyst_notes(path: str | Path, alert_id: str) -> list[dict]:
+    """Return investigation notes for one alert, oldest first."""
+    with connect_database(path) as connection:
+        rows = connection.execute(
+            "SELECT id, alert_id, note, created_at FROM analyst_notes WHERE alert_id = ? ORDER BY id ASC",
+            (alert_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def save_events(path: str | Path, events: list[dict[str, Any]]) -> None:

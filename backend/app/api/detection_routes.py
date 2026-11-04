@@ -1,6 +1,7 @@
 """Security detection and SOC operation API routes."""
 
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -10,7 +11,9 @@ from app.alerts.alert_manager import create_alerts
 from app.copilot.analyst import generate_incident_analysis
 from app.database.connection import (
     count_events,
+    add_analyst_note,
     get_alert_by_id,
+    list_analyst_notes,
     list_alerts,
     list_events,
     save_alerts,
@@ -251,4 +254,39 @@ def get_copilot_analysis(alert_id: str):
 
     analysis = generate_incident_analysis(alert)
     return jsonify(alert_id=alert_id, analysis=analysis)
+
+
+@detection_api.get("/api/alerts/<alert_id>/notes")
+def get_alert_notes(alert_id: str):
+    """List analyst investigation notes for one saved alert."""
+    db_path = current_app.config["DATABASE"]
+    if get_alert_by_id(db_path, alert_id) is None:
+        return jsonify(error="alert not found"), 404
+    notes = list_analyst_notes(db_path, alert_id)
+    return jsonify(alert_id=alert_id, note_count=len(notes), notes=notes)
+
+
+@detection_api.post("/api/alerts/<alert_id>/notes")
+def create_alert_note(alert_id: str):
+    """Validate and save an analyst note for a specific alert."""
+    db_path = current_app.config["DATABASE"]
+    if get_alert_by_id(db_path, alert_id) is None:
+        return jsonify(error="alert not found"), 404
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify(error="request body must be a JSON object"), 400
+    note_text = payload.get("note")
+    if not isinstance(note_text, str) or not note_text.strip():
+        return jsonify(error="note must contain text"), 400
+    if len(note_text.strip()) > 2000:
+        return jsonify(error="note must be 2000 characters or fewer"), 400
+
+    saved_note = add_analyst_note(
+        db_path,
+        alert_id,
+        note_text.strip(),
+        datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    )
+    return jsonify(note=saved_note), 201
 
