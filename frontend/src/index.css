@@ -98,6 +98,10 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .filter-input { background: #15202c; border: 1px solid #283749; color: #c4d2e0; padding: 7px 11px; border-radius: 5px; font-size: 11px; width: 240px; font-family: inherit; }
 .filter-input:focus { outline: 1px solid #5ee0bd; border-color: #5ee0bd; }
 .filter-select { background: #15202c; border: 1px solid #283749; color: #c4d2e0; padding: 7px 11px; border-radius: 5px; font-size: 11px; font-family: inherit; }
+.alert-filter-bar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px 18px; background: #0e1622; border-bottom: 1px solid #202d3b; }
+.alert-filter-bar .filter-input { flex: 1 1 230px; width: auto; }
+.clear-filter-button { padding: 7px 10px; border: 1px solid #2a3b49; border-radius: 5px; background: #15232d; color: #9bb0c4; font-size: 10px; cursor: pointer; }
+.clear-filter-button:hover { border-color: #5ee0bd; color: #d0e0ed; }
 .badge { display: inline-block; padding: 3px 6px; border-radius: 3px; font: 9px 'DM Mono',monospace; }
 .badge.login { background: #1e3532; color: #74deb9; }
 .badge.web { background: #202b3c; color: #8cb6e6; }

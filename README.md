@@ -39,6 +39,8 @@ Milestone 11: the Incidents & Playbooks dashboard view uses `GET /api/alerts/<al
 
 Milestone 12: analysts can save investigation notes against an alert. Notes are stored in a dedicated SQLite table and are available through `GET /api/alerts/<alert_id>/notes`; create one with `POST /api/alerts/<alert_id>/notes` and a JSON body such as `{"note":"Reviewed related events; no successful login found."}`. Notes remain available when the dashboard reloads.
 
+Milestone 13: the overview dashboard can filter alerts by a text search (title, source IP, rule, or MITRE details), severity, and analyst status. The filters run in the browser against the alert list already loaded from the API.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

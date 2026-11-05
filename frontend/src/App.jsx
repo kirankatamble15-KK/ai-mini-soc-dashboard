@@ -28,6 +28,9 @@ export default function App() {
   // Log explorer filters
   const [logFilterType, setLogFilterType] = useState('')
   const [logSearchQuery, setLogSearchQuery] = useState('')
+  const [alertSearchQuery, setAlertSearchQuery] = useState('')
+  const [alertSeverityFilter, setAlertSeverityFilter] = useState('')
+  const [alertStatusFilter, setAlertStatusFilter] = useState('')
 
   async function loadAlerts() {
     setLoading(true)
@@ -197,6 +200,19 @@ export default function App() {
   const openCount = alerts.filter((a) => a.status === 'open').length
   const mlAnomalyCount = alerts.filter((a) => a.rule === 'ml_behavioral_anomaly').length
   const totalEvents = stats?.total_events ?? (logs.length || 0)
+  const normalizedAlertQuery = alertSearchQuery.trim().toLowerCase()
+  const filteredAlerts = alerts.filter((alert) => {
+    const searchableText = [
+      alert.title,
+      alert.source_ip,
+      alert.rule,
+      alert.mitre_technique_id,
+      alert.mitre_technique_name,
+    ].join(' ').toLowerCase()
+    return (!normalizedAlertQuery || searchableText.includes(normalizedAlertQuery))
+      && (!alertSeverityFilter || alert.severity === alertSeverityFilter)
+      && (!alertStatusFilter || alert.status === alertStatusFilter)
+  })
 
   return (
     <div className="app-shell">
@@ -346,7 +362,53 @@ export default function App() {
                   <h2>Active Security Alerts</h2>
                   <p>Rule findings mapped to MITRE ATT&CK techniques & AI Behavioral Anomalies</p>
                 </div>
-                <span className="result-count">{alerts.length} ALERTS</span>
+                <span className="result-count">{filteredAlerts.length} / {alerts.length} ALERTS</span>
+              </div>
+
+              <div className="alert-filter-bar" role="search" aria-label="Filter security alerts">
+                <input
+                  type="search"
+                  className="filter-input"
+                  placeholder="Search title, IP, rule, or MITRE…"
+                  aria-label="Search alerts"
+                  value={alertSearchQuery}
+                  onChange={(event) => setAlertSearchQuery(event.target.value)}
+                />
+                <select
+                  className="filter-select"
+                  aria-label="Filter alerts by severity"
+                  value={alertSeverityFilter}
+                  onChange={(event) => setAlertSeverityFilter(event.target.value)}
+                >
+                  <option value="">All severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+                <select
+                  className="filter-select"
+                  aria-label="Filter alerts by status"
+                  value={alertStatusFilter}
+                  onChange={(event) => setAlertStatusFilter(event.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="acknowledged">Acknowledged</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+                {(alertSearchQuery || alertSeverityFilter || alertStatusFilter) && (
+                  <button
+                    className="clear-filter-button"
+                    onClick={() => {
+                      setAlertSearchQuery('')
+                      setAlertSeverityFilter('')
+                      setAlertStatusFilter('')
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                )}
               </div>
 
               <div className="table-wrap">
@@ -375,8 +437,14 @@ export default function App() {
                           No alerts recorded yet. Click <strong>"Ingest & Run Analysis"</strong> above to test detections!
                         </td>
                       </tr>
+                    ) : filteredAlerts.length === 0 ? (
+                      <tr>
+                        <td className="empty-state" colSpan="7">
+                          No alerts match these filters. Clear the filters or try a different search.
+                        </td>
+                      </tr>
                     ) : (
-                      alerts.map((alert) => (
+                      filteredAlerts.map((alert) => (
                         <tr key={alert.id}>
                           <td>
                             <div className="alert-title">{alert.title}</div>
