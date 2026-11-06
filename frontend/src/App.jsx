@@ -5,6 +5,46 @@ function formatDate(value) {
   return new Date(value).toLocaleString()
 }
 
+function csvCell(value) {
+  const text = value == null ? '' : String(value)
+  return `"${text.replaceAll('"', '""')}"`
+}
+
+function downloadAlertsCsv(alerts) {
+  const columns = [
+    ['Title', (alert) => alert.title],
+    ['Severity', (alert) => alert.severity],
+    ['Status', (alert) => alert.status],
+    ['Source IP', (alert) => alert.source_ip],
+    ['Detection rule', (alert) => alert.rule],
+    ['Activity count', (alert) => alert.event_count],
+    ['Count label', (alert) => alert.count_label],
+    ['MITRE tactic', (alert) => alert.mitre_tactic],
+    ['MITRE technique ID', (alert) => alert.mitre_technique_id],
+    ['MITRE technique', (alert) => alert.mitre_technique_name],
+    ['First seen', (alert) => alert.first_seen],
+    ['Last seen', (alert) => alert.last_seen],
+    ['Evidence', (alert) => alert.details?.explanation
+      ?? alert.details?.path
+      ?? alert.details?.matched_patterns?.join(', ')
+      ?? alert.usernames?.join(', ')],
+  ]
+  const csv = [
+    columns.map(([heading]) => csvCell(heading)).join(','),
+    ...alerts.map((alert) => columns.map(([, valueFor]) => csvCell(valueFor(alert))).join(',')),
+  ].join('\r\n')
+
+  const file = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' })
+  const downloadUrl = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  link.download = `soc-alerts-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(downloadUrl)
+}
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState('overview')
   const [alerts, setAlerts] = useState([])
@@ -409,6 +449,13 @@ export default function App() {
                     Clear filters
                   </button>
                 )}
+                <button
+                  className="export-button"
+                  onClick={() => downloadAlertsCsv(filteredAlerts)}
+                  disabled={filteredAlerts.length === 0}
+                >
+                  ↓ Export CSV ({filteredAlerts.length})
+                </button>
               </div>
 
               <div className="table-wrap">

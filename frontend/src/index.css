@@ -102,6 +102,9 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .alert-filter-bar .filter-input { flex: 1 1 230px; width: auto; }
 .clear-filter-button { padding: 7px 10px; border: 1px solid #2a3b49; border-radius: 5px; background: #15232d; color: #9bb0c4; font-size: 10px; cursor: pointer; }
 .clear-filter-button:hover { border-color: #5ee0bd; color: #d0e0ed; }
+.export-button { padding: 7px 10px; border: 1px solid #2e7164; border-radius: 5px; background: #164038; color: #7af2d3; font-size: 10px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.export-button:hover:not(:disabled) { border-color: #5ee0bd; background: #1b5349; color: #ffffff; }
+.export-button:disabled { opacity: .45; cursor: not-allowed; }
 .badge { display: inline-block; padding: 3px 6px; border-radius: 3px; font: 9px 'DM Mono',monospace; }
 .badge.login { background: #1e3532; color: #74deb9; }
 .badge.web { background: #202b3c; color: #8cb6e6; }

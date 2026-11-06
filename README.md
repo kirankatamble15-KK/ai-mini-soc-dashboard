@@ -41,6 +41,8 @@ Milestone 12: analysts can save investigation notes against an alert. Notes are 
 
 Milestone 13: the overview dashboard can filter alerts by a text search (title, source IP, rule, or MITRE details), severity, and analyst status. The filters run in the browser against the alert list already loaded from the API.
 
+Milestone 14: analysts can download the currently filtered alert list as a UTF-8 CSV file from the overview dashboard. The export includes alert details, status, severity, source IP, activity count, MITRE mapping, timestamps, and evidence.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
