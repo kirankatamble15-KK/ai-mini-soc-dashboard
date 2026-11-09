@@ -43,6 +43,8 @@ Milestone 13: the overview dashboard can filter alerts by a text search (title, 
 
 Milestone 14: analysts can download the currently filtered alert list as a UTF-8 CSV file from the overview dashboard. The export includes alert details, status, severity, source IP, activity count, MITRE mapping, timestamps, and evidence.
 
+Milestone 15: repeated findings are matched by detection rule, source, time range, title, users, and evidence. Matching findings keep their existing alert ID and analyst status, while the API reports how many new alerts were saved and how many matched existing alerts.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

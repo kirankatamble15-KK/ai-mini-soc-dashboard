@@ -96,34 +96,101 @@ def initialize_database(path: str | Path) -> None:
         )
 
 
-def save_alerts(path: str | Path, alerts: list[dict]) -> None:
-    """Insert alert records into SQLite."""
+def save_alerts(path: str | Path, alerts: list[dict]) -> dict[str, Any]:
+    """Insert new alerts and update matching findings without resetting triage state."""
+    inserted_alerts: list[dict] = []
+    duplicate_count = 0
     with connect_database(path) as connection:
-        connection.executemany(
-            """
-            INSERT INTO alerts (
-                id, title, severity, status, source_ip, failed_attempts,
-                usernames, first_seen, last_seen, rule, event_count, count_label,
-                details, mitre_tactic, mitre_technique_id, mitre_technique_name, mitre_url
-            ) VALUES (
-                :id, :title, :severity, :status, :source_ip, :failed_attempts,
-                :usernames, :first_seen, :last_seen, :rule, :event_count, :count_label,
-                :details, :mitre_tactic, :mitre_technique_id, :mitre_technique_name, :mitre_url
+        for alert in alerts:
+            usernames = alert.get("usernames", [])
+            details = alert.get("details", {})
+            candidates = connection.execute(
+                """
+                SELECT id, title, usernames, details
+                FROM alerts
+                WHERE rule = ? AND source_ip = ? AND first_seen IS ? AND last_seen IS ?
+                ORDER BY rowid DESC
+                """,
+                (
+                    alert["rule"],
+                    alert["source_ip"],
+                    alert.get("first_seen"),
+                    alert.get("last_seen"),
+                ),
+            ).fetchall()
+            matching_alert = next(
+                (
+                    row
+                    for row in candidates
+                    if row["title"] == alert["title"]
+                    and sorted(json.loads(row["usernames"])) == sorted(usernames)
+                    and json.loads(row["details"]) == details
+                ),
+                None,
             )
-            """,
-            [
-                {
-                    **alert,
-                    "usernames": json.dumps(alert.get("usernames", [])),
-                    "details": json.dumps(alert.get("details", {})),
-                    "mitre_tactic": alert.get("mitre_tactic", "Unknown"),
-                    "mitre_technique_id": alert.get("mitre_technique_id", "N/A"),
-                    "mitre_technique_name": alert.get("mitre_technique_name", "N/A"),
-                    "mitre_url": alert.get("mitre_url", ""),
-                }
-                for alert in alerts
-            ],
-        )
+
+            if matching_alert:
+                # Keep the original ID and status so linked notes and analyst triage survive.
+                connection.execute(
+                    """
+                    UPDATE alerts
+                    SET severity = ?, failed_attempts = MAX(failed_attempts, ?),
+                        event_count = MAX(event_count, ?), count_label = ?,
+                        details = ?, mitre_tactic = ?, mitre_technique_id = ?,
+                        mitre_technique_name = ?, mitre_url = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        alert["severity"],
+                        alert.get("failed_attempts", 0),
+                        alert.get("event_count", 0),
+                        alert.get("count_label", "events"),
+                        json.dumps(details),
+                        alert.get("mitre_tactic", "Unknown"),
+                        alert.get("mitre_technique_id", "N/A"),
+                        alert.get("mitre_technique_name", "N/A"),
+                        alert.get("mitre_url", ""),
+                        matching_alert["id"],
+                    ),
+                )
+                duplicate_count += 1
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO alerts (
+                    id, title, severity, status, source_ip, failed_attempts,
+                    usernames, first_seen, last_seen, rule, event_count, count_label,
+                    details, mitre_tactic, mitre_technique_id, mitre_technique_name, mitre_url
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    alert["id"],
+                    alert["title"],
+                    alert["severity"],
+                    alert.get("status", "open"),
+                    alert["source_ip"],
+                    alert.get("failed_attempts", 0),
+                    json.dumps(usernames),
+                    alert.get("first_seen"),
+                    alert.get("last_seen"),
+                    alert["rule"],
+                    alert.get("event_count", 0),
+                    alert.get("count_label", "events"),
+                    json.dumps(details),
+                    alert.get("mitre_tactic", "Unknown"),
+                    alert.get("mitre_technique_id", "N/A"),
+                    alert.get("mitre_technique_name", "N/A"),
+                    alert.get("mitre_url", ""),
+                ),
+            )
+            inserted_alerts.append(alert)
+
+    return {
+        "alerts": inserted_alerts,
+        "saved_count": len(inserted_alerts),
+        "duplicate_count": duplicate_count,
+    }
 
 
 def list_alerts(path: str | Path) -> list[dict]:

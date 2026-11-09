@@ -127,7 +127,13 @@ export default function App() {
       const res = await fetch('/api/demo/analyze', { method: 'POST' })
       if (!res.ok) throw new Error(`Server returned ${res.status}`)
       const data = await res.json()
-      setSuccessMsg(`Ingested ${data.event_count} events and generated ${data.alert_count} alerts (Rule-based & AI Anomaly)!`)
+      const newAlerts = data.alert_count ?? 0
+      const repeatedAlerts = data.duplicate_alert_count ?? 0
+      const newAlertText = `${newAlerts} new alert${newAlerts === 1 ? '' : 's'}`
+      const repeatedAlertText = repeatedAlerts
+        ? `; matched ${repeatedAlerts} already-saved alert${repeatedAlerts === 1 ? '' : 's'}`
+        : ''
+      setSuccessMsg(`Ingested ${data.event_count} events and saved ${newAlertText}${repeatedAlertText}.`)
       await loadAlerts()
       if (currentTab === 'logs') await loadLogs()
     } catch (err) {

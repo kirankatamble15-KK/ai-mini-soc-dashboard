@@ -67,8 +67,14 @@ def analyze_and_save_sample():
     save_events(db_path, events)
 
     alerts = create_alerts(analyze_events(events))
-    save_alerts(db_path, alerts)
-    return jsonify(event_count=len(events), alert_count=len(alerts), alerts=alerts), 201
+    save_result = save_alerts(db_path, alerts)
+    return jsonify(
+        event_count=len(events),
+        alert_count=save_result["saved_count"],
+        duplicate_alert_count=save_result["duplicate_count"],
+        analyzed_alert_count=len(alerts),
+        alerts=save_result["alerts"],
+    ), 201
 
 
 @detection_api.get("/api/alerts")
@@ -155,13 +161,18 @@ def ingest_live_logs():
 
     findings = analyze_events(validated_events)
     alerts = create_alerts(findings)
-    if alerts:
-        save_alerts(db_path, alerts)
+    save_result = save_alerts(db_path, alerts) if alerts else {
+        "alerts": [],
+        "saved_count": 0,
+        "duplicate_count": 0,
+    }
 
     return jsonify(
         ingested_count=len(validated_events),
-        alerts_generated=len(alerts),
-        alerts=alerts,
+        alerts_generated=save_result["saved_count"],
+        duplicate_alert_count=save_result["duplicate_count"],
+        analyzed_alert_count=len(alerts),
+        alerts=save_result["alerts"],
         errors=errors,
     ), 201
 
