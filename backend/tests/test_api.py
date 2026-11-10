@@ -49,6 +49,46 @@ class ApiEndpointsTestCase(unittest.TestCase):
         self.assertIn("mitre_tactic", first_alert)
         self.assertIn("mitre_technique_id", first_alert)
 
+    def test_repeated_demo_analysis_deduplicates_and_preserves_triage(self):
+        """Repeated sample analysis should not create alerts or erase analyst work."""
+        first_response = self.client.post("/api/demo/analyze")
+        self.assertEqual(first_response.status_code, 201)
+        first_run = first_response.get_json()
+        self.assertGreater(first_run["alert_count"], 0)
+        self.assertEqual(first_run["duplicate_alert_count"], 0)
+
+        alert = first_run["alerts"][0]
+        alert_id = alert["id"]
+        status_response = self.client.patch(
+            f"/api/alerts/{alert_id}", json={"status": "acknowledged"}
+        )
+        self.assertEqual(status_response.status_code, 200)
+
+        note_response = self.client.post(
+            f"/api/alerts/{alert_id}/notes",
+            json={"note": "Reviewed the repeated sample finding."},
+        )
+        self.assertEqual(note_response.status_code, 201)
+
+        second_response = self.client.post("/api/demo/analyze")
+        self.assertEqual(second_response.status_code, 201)
+        second_run = second_response.get_json()
+        self.assertEqual(second_run["alert_count"], 0)
+        self.assertEqual(
+            second_run["duplicate_alert_count"], first_run["analyzed_alert_count"]
+        )
+
+        saved_alerts = self.client.get("/api/alerts").get_json()
+        self.assertEqual(saved_alerts["alert_count"], first_run["alert_count"])
+        preserved_alert = next(a for a in saved_alerts["alerts"] if a["id"] == alert_id)
+        self.assertEqual(preserved_alert["status"], "acknowledged")
+
+        saved_notes = self.client.get(f"/api/alerts/{alert_id}/notes").get_json()
+        self.assertEqual(saved_notes["note_count"], 1)
+        self.assertEqual(
+            saved_notes["notes"][0]["note"], "Reviewed the repeated sample finding."
+        )
+
     def test_patch_alert_status(self):
         """Verify alert triage state transitions."""
         self.client.post("/api/demo/analyze")
