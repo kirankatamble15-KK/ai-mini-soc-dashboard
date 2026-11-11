@@ -120,6 +120,16 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .model-card p { margin: 0; font-size: 11px; color: #7f91a5; line-height: 1.4; }
 .feature-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .feature-chip { padding: 3px 8px; border-radius: 4px; background: #192736; border: 1px solid #2a3d52; color: #9bb5cc; font: 9px 'DM Mono', monospace; }
+.model-evaluation { margin-top: 16px; padding: 16px; border: 1px solid #233446; border-radius: 8px; background: #111a24; }
+.evaluation-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.evaluation-heading h3 { margin: 0 0 6px; color: #cfddec; font-size: 13px; }
+.evaluation-heading p, .evaluation-caveat { margin: 0; color: #7f91a5; font-size: 10px; line-height: 1.5; }
+.evaluation-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 15px; }
+.evaluation-metric { display: grid; gap: 7px; padding: 11px; border: 1px solid #233446; border-radius: 6px; background: #0c141e; }
+.evaluation-metric span { color: #8195aa; font: 9px 'DM Mono', monospace; text-transform: uppercase; }
+.evaluation-metric strong { color: #72dfc0; font-size: 19px; }
+.evaluation-counts { margin: 12px 0 6px; color: #a8b8c8; font: 9px 'DM Mono', monospace; line-height: 1.6; }
+.evaluation-error { color: #f58e94; font-size: 11px; }
 
 /* Incident investigation / analyst copilot */
 .incident-content { padding: 19px; }
@@ -178,4 +188,6 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
   .panel-footer { padding: 0 12px; }
   .incident-picker { align-items: stretch; flex-direction: column; }
   .incident-detail-grid { grid-template-columns: 1fr; }
+  .evaluation-heading { align-items: stretch; flex-direction: column; }
+  .evaluation-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

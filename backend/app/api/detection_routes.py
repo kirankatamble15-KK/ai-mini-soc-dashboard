@@ -238,6 +238,18 @@ def train_ml_model():
     )
 
 
+@detection_api.get("/api/ml/evaluation")
+def evaluate_ml_model():
+    """Measure anomaly detection against a labeled synthetic benchmark."""
+    from app.ml.anomaly_detector import get_anomaly_detector
+    from app.ml.evaluation import evaluate_detector
+
+    try:
+        return jsonify(evaluate_detector(get_anomaly_detector()))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+
+
 # ---------------------------------------------------------------------------
 # AI SOC Analyst Copilot
 # ---------------------------------------------------------------------------

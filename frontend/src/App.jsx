@@ -51,6 +51,9 @@ export default function App() {
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState(null)
   const [mlStatus, setMlStatus] = useState(null)
+  const [mlEvaluation, setMlEvaluation] = useState(null)
+  const [mlEvaluationLoading, setMlEvaluationLoading] = useState(false)
+  const [mlEvaluationError, setMlEvaluationError] = useState('')
   const [copilotAlertId, setCopilotAlertId] = useState('')
   const [copilotAnalysis, setCopilotAnalysis] = useState(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
@@ -162,6 +165,20 @@ export default function App() {
       setActionError('ML model training failed.')
     } finally {
       setRetraining(false)
+    }
+  }
+
+  async function runMlEvaluation() {
+    setMlEvaluationLoading(true)
+    setMlEvaluationError('')
+    try {
+      const response = await fetch('/api/ml/evaluation')
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      setMlEvaluation(await response.json())
+    } catch (err) {
+      setMlEvaluationError('Could not run the evaluation. Check that the Flask backend is running.')
+    } finally {
+      setMlEvaluationLoading(false)
     }
   }
 
@@ -719,6 +736,41 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              <section className="model-evaluation">
+                <div className="evaluation-heading">
+                  <div>
+                    <h3>Synthetic Model Evaluation</h3>
+                    <p>Compare model predictions with labeled normal and attack examples.</p>
+                  </div>
+                  <button className="refresh-button" onClick={runMlEvaluation} disabled={mlEvaluationLoading}>
+                    {mlEvaluationLoading ? 'Evaluating…' : 'Run evaluation'}
+                  </button>
+                </div>
+                {mlEvaluationError && <p className="evaluation-error">{mlEvaluationError}</p>}
+                {mlEvaluation ? (
+                  <>
+                    <div className="evaluation-metrics">
+                      {[
+                        ['Precision', mlEvaluation.metrics.precision],
+                        ['Recall', mlEvaluation.metrics.recall],
+                        ['F1 score', mlEvaluation.metrics.f1],
+                        ['False-positive rate', mlEvaluation.metrics.false_positive_rate],
+                      ].map(([label, value]) => (
+                        <div className="evaluation-metric" key={label}>
+                          <span>{label}</span><strong>{(value * 100).toFixed(1)}%</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="evaluation-counts">
+                      {mlEvaluation.normal_count} normal + {mlEvaluation.attack_count} attack samples ·
+                      TP {mlEvaluation.confusion_matrix.true_positive}, FP {mlEvaluation.confusion_matrix.false_positive},
+                      TN {mlEvaluation.confusion_matrix.true_negative}, FN {mlEvaluation.confusion_matrix.false_negative}
+                    </p>
+                    <p className="evaluation-caveat">{mlEvaluation.note}</p>
+                  </>
+                ) : !mlEvaluationError && <p className="evaluation-caveat">Run the benchmark to see how the current model scores.</p>}
+              </section>
             </div>
 
             <div className="panel-footer">

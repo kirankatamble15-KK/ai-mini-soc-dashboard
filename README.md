@@ -45,6 +45,8 @@ Milestone 14: analysts can download the currently filtered alert list as a UTF-8
 
 Milestone 15: repeated findings are matched by detection rule, source, time range, title, users, and evidence. Matching findings keep their existing alert ID and analyst status, while the API reports how many new alerts were saved and how many matched existing alerts.
 
+Milestone 16: the AI / ML dashboard can score the Isolation Forest against a labeled synthetic benchmark with precision, recall, F1, false-positive rate, and TP/FP/TN/FN counts. The benchmark uses 120 generated normal events and 40 generated attack events. Its scores are for learning and do not represent real-world detection performance. Run it with `GET /api/ml/evaluation`.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
