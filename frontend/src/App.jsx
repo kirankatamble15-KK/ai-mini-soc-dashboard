@@ -767,6 +767,15 @@ export default function App() {
                       TP {mlEvaluation.confusion_matrix.true_positive}, FP {mlEvaluation.confusion_matrix.false_positive},
                       TN {mlEvaluation.confusion_matrix.true_negative}, FN {mlEvaluation.confusion_matrix.false_negative}
                     </p>
+                    <div className="evaluation-category-grid" aria-label="Results by attack category">
+                      {Object.entries(mlEvaluation.attack_categories || {}).map(([category, result]) => (
+                        <div className="evaluation-category" key={category}>
+                          <span>{category.replaceAll('_', ' ')}</span>
+                          <strong>{(result.recall * 100).toFixed(0)}% detected</strong>
+                          <small>{result.detected_count} of {result.sample_count} samples</small>
+                        </div>
+                      ))}
+                    </div>
                     <p className="evaluation-caveat">{mlEvaluation.note}</p>
                   </>
                 ) : !mlEvaluationError && <p className="evaluation-caveat">Run the benchmark to see how the current model scores.</p>}

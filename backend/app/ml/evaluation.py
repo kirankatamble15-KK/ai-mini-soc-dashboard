@@ -7,10 +7,10 @@ from app.ml.baseline_generator import generate_baseline_dataset
 from app.ml.features import extract_dataset_features
 
 
-def build_evaluation_dataset() -> tuple[list[dict[str, Any]], list[int]]:
-    """Build 120 known-normal and 40 known-attack events, chronologically sorted."""
+def build_evaluation_dataset() -> tuple[list[dict[str, Any]], list[int], list[str]]:
+    """Build labeled events, including each attack category, in time order."""
     normal_events = generate_baseline_dataset(120)
-    labeled = [(event, 0) for event in normal_events]
+    labeled = [(event, 0, "normal") for event in normal_events]
 
     # A tight, off-hours burst from one synthetic source makes the benchmark's
     # attack behavior explicit and repeatable for the burst-velocity feature.
@@ -21,8 +21,15 @@ def build_evaluation_dataset() -> tuple[list[dict[str, Any]], list[int]]:
         "/../../../../etc/passwd",
         "/api/run?cmd=%3Bcat%20/etc/passwd",
     ]
+    attack_categories = [
+        "failed_login",
+        "sql_injection",
+        "path_traversal",
+        "command_injection",
+    ]
     for index in range(40):
         timestamp = (start + timedelta(seconds=index * 5)).isoformat().replace("+00:00", "Z")
+        category = attack_categories[index % len(attack_categories)]
         if index % 4 == 0:
             event = {
                 "timestamp": timestamp,
@@ -40,10 +47,14 @@ def build_evaluation_dataset() -> tuple[list[dict[str, Any]], list[int]]:
                 "path": attack_paths[index % len(attack_paths)],
                 "status_code": 400,
             }
-        labeled.append((event, 1))
+        labeled.append((event, 1, category))
 
     labeled.sort(key=lambda item: item[0]["timestamp"])
-    return [event for event, _ in labeled], [label for _, label in labeled]
+    return (
+        [event for event, _, _ in labeled],
+        [label for _, label, _ in labeled],
+        [category for _, _, category in labeled],
+    )
 
 
 def evaluate_detector(detector: Any) -> dict[str, Any]:
@@ -51,7 +62,7 @@ def evaluate_detector(detector: Any) -> dict[str, Any]:
     if not detector.is_trained():
         raise ValueError("The anomaly detector must be trained before evaluation")
 
-    events, labels = build_evaluation_dataset()
+    events, labels, categories = build_evaluation_dataset()
     predictions = detector.model.predict(extract_dataset_features(events))
     predicted_attack = [int(value == -1) for value in predictions]
 
@@ -64,6 +75,16 @@ def evaluate_detector(detector: Any) -> dict[str, Any]:
     recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     false_positive_rate = false_positive / (false_positive + true_negative) if false_positive + true_negative else 0.0
+    category_results = {}
+    for category in sorted(set(categories) - {"normal"}):
+        category_indexes = [index for index, value in enumerate(categories) if value == category]
+        detected = sum(predicted_attack[index] for index in category_indexes)
+        total = len(category_indexes)
+        category_results[category] = {
+            "sample_count": total,
+            "detected_count": detected,
+            "recall": round(detected / total, 3) if total else 0.0,
+        }
 
     return {
         "benchmark": "synthetic",
@@ -82,5 +103,6 @@ def evaluate_detector(detector: Any) -> dict[str, Any]:
             "true_negative": true_negative,
             "false_negative": false_negative,
         },
+        "attack_categories": category_results,
         "note": "Synthetic benchmark only; these scores do not represent real-world detection performance.",
     }

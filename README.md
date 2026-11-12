@@ -47,6 +47,8 @@ Milestone 15: repeated findings are matched by detection rule, source, time rang
 
 Milestone 16: the AI / ML dashboard can score the Isolation Forest against a labeled synthetic benchmark with precision, recall, F1, false-positive rate, and TP/FP/TN/FN counts. The benchmark uses 120 generated normal events and 40 generated attack events. Its scores are for learning and do not represent real-world detection performance. Run it with `GET /api/ml/evaluation`.
 
+Milestone 17: synthetic benchmark results also show recall by attack category (failed login, SQL injection, path traversal, and command injection) so learners can see which patterns the model catches in this example dataset.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
