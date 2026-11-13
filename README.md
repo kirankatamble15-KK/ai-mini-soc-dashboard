@@ -49,6 +49,8 @@ Milestone 16: the AI / ML dashboard can score the Isolation Forest against a lab
 
 Milestone 17: synthetic benchmark results also show recall by attack category (failed login, SQL injection, path traversal, and command injection) so learners can see which patterns the model catches in this example dataset.
 
+Milestone 18: analysts can export the latest synthetic ML evaluation as a CSV report with its run time, aggregate scores, confusion-matrix counts, and per-category results.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

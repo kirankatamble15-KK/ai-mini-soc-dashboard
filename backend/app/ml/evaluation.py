@@ -88,6 +88,7 @@ def evaluate_detector(detector: Any) -> dict[str, Any]:
 
     return {
         "benchmark": "synthetic",
+        "evaluated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "sample_count": len(events),
         "normal_count": sum(label == 0 for label in labels),
         "attack_count": sum(label == 1 for label in labels),

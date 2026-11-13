@@ -45,6 +45,40 @@ function downloadAlertsCsv(alerts) {
   URL.revokeObjectURL(downloadUrl)
 }
 
+function downloadMlEvaluationCsv(report) {
+  const rows = [
+    ['Evaluation time', report.evaluated_at],
+    ['Benchmark type', report.benchmark],
+    ['Total samples', report.sample_count],
+    ['Normal samples', report.normal_count],
+    ['Attack samples', report.attack_count],
+    ['Precision', report.metrics.precision],
+    ['Recall', report.metrics.recall],
+    ['F1 score', report.metrics.f1],
+    ['False-positive rate', report.metrics.false_positive_rate],
+    [],
+    ['Attack category', 'Detected samples', 'Total samples', 'Recall'],
+    ...Object.entries(report.attack_categories || {}).map(([category, result]) => [
+      category.replaceAll('_', ' '),
+      result.detected_count,
+      result.sample_count,
+      result.recall,
+    ]),
+    [],
+    ['Note', report.note],
+  ]
+  const csv = rows.map((row) => row.map(csvCell).join(',')).join('\r\n')
+  const file = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' })
+  const downloadUrl = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  link.download = `ml-evaluation-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(downloadUrl)
+}
+
 export default function App() {
   const [currentTab, setCurrentTab] = useState('overview')
   const [alerts, setAlerts] = useState([])
@@ -777,6 +811,9 @@ export default function App() {
                       ))}
                     </div>
                     <p className="evaluation-caveat">{mlEvaluation.note}</p>
+                    <button className="export-button evaluation-export" onClick={() => downloadMlEvaluationCsv(mlEvaluation)}>
+                      ↓ Export evaluation CSV
+                    </button>
                   </>
                 ) : !mlEvaluationError && <p className="evaluation-caveat">Run the benchmark to see how the current model scores.</p>}
               </section>

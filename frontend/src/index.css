@@ -135,6 +135,7 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .evaluation-category strong { color: #cfddec; font-size: 12px; }
 .evaluation-category small { color: #71859b; font-size: 9px; }
 .evaluation-error { color: #f58e94; font-size: 11px; }
+.evaluation-export { margin-top: 10px; }
 
 /* Incident investigation / analyst copilot */
 .incident-content { padding: 19px; }
