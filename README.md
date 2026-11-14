@@ -51,6 +51,8 @@ Milestone 17: synthetic benchmark results also show recall by attack category (f
 
 Milestone 18: analysts can export the latest synthetic ML evaluation as a CSV report with its run time, aggregate scores, confusion-matrix counts, and per-category results.
 
+Milestone 19: each synthetic ML evaluation is saved in SQLite and the AI / ML dashboard lists the five most recent runs, making it easier to compare results after model retraining. The history endpoint is `GET /api/ml/evaluation/history`.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

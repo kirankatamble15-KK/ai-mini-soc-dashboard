@@ -14,10 +14,12 @@ from app.database.connection import (
     add_analyst_note,
     get_alert_by_id,
     list_analyst_notes,
+    list_ml_evaluations,
     list_alerts,
     list_events,
     save_alerts,
     save_events,
+    save_ml_evaluation,
     update_alert_status,
 )
 from app.detection.detection_engine import analyze_events
@@ -245,9 +247,19 @@ def evaluate_ml_model():
     from app.ml.evaluation import evaluate_detector
 
     try:
-        return jsonify(evaluate_detector(get_anomaly_detector()))
+        report = evaluate_detector(get_anomaly_detector())
+        report["id"] = save_ml_evaluation(current_app.config["DATABASE"], report)
+        return jsonify(report)
     except ValueError as exc:
         return jsonify(error=str(exc)), 400
+
+
+@detection_api.get("/api/ml/evaluation/history")
+def get_ml_evaluation_history():
+    """Return the latest saved synthetic ML benchmark reports."""
+    limit = min(max(request.args.get("limit", default=10, type=int) or 10, 1), 50)
+    runs = list_ml_evaluations(current_app.config["DATABASE"], limit=limit)
+    return jsonify(run_count=len(runs), runs=runs)
 
 
 # ---------------------------------------------------------------------------

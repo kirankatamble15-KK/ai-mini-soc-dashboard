@@ -136,6 +136,11 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .evaluation-category small { color: #71859b; font-size: 9px; }
 .evaluation-error { color: #f58e94; font-size: 11px; }
 .evaluation-export { margin-top: 10px; }
+.evaluation-history { margin-top: 16px; padding-top: 13px; border-top: 1px solid #233446; }
+.evaluation-history h4 { margin: 0 0 9px; color: #cfddec; font-size: 11px; }
+.evaluation-history-list { display: grid; gap: 6px; }
+.evaluation-history-row { display: grid; grid-template-columns: minmax(130px, 1fr) repeat(3, 55px); gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #1f2e3d; border-radius: 5px; background: #0c141e; color: #aebdce; font: 9px 'DM Mono', monospace; }
+.evaluation-history-row time { color: #8195aa; }
 
 /* Incident investigation / analyst copilot */
 .incident-content { padding: 19px; }
@@ -197,4 +202,5 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
   .evaluation-heading { align-items: stretch; flex-direction: column; }
   .evaluation-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .evaluation-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .evaluation-history-row { grid-template-columns: minmax(100px, 1fr) repeat(3, 42px); gap: 5px; font-size: 8px; }
 }

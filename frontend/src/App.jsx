@@ -86,6 +86,7 @@ export default function App() {
   const [stats, setStats] = useState(null)
   const [mlStatus, setMlStatus] = useState(null)
   const [mlEvaluation, setMlEvaluation] = useState(null)
+  const [mlEvaluationHistory, setMlEvaluationHistory] = useState([])
   const [mlEvaluationLoading, setMlEvaluationLoading] = useState(false)
   const [mlEvaluationError, setMlEvaluationError] = useState('')
   const [copilotAlertId, setCopilotAlertId] = useState('')
@@ -208,11 +209,24 @@ export default function App() {
     try {
       const response = await fetch('/api/ml/evaluation')
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
-      setMlEvaluation(await response.json())
+      const report = await response.json()
+      setMlEvaluation(report)
+      await loadMlEvaluationHistory()
     } catch (err) {
       setMlEvaluationError('Could not run the evaluation. Check that the Flask backend is running.')
     } finally {
       setMlEvaluationLoading(false)
+    }
+  }
+
+  async function loadMlEvaluationHistory() {
+    try {
+      const response = await fetch('/api/ml/evaluation/history?limit=5')
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      const data = await response.json()
+      setMlEvaluationHistory(data.runs ?? [])
+    } catch (err) {
+      console.error('Could not load ML evaluation history', err)
     }
   }
 
@@ -292,6 +306,10 @@ export default function App() {
       loadLogs()
     }
   }, [currentTab, logFilterType, logSearchQuery])
+
+  useEffect(() => {
+    if (currentTab === 'ml') loadMlEvaluationHistory()
+  }, [currentTab])
 
   const highOrCriticalCount = alerts.filter((a) => a.severity === 'high' || a.severity === 'critical').length
   const openCount = alerts.filter((a) => a.status === 'open').length
@@ -816,6 +834,21 @@ export default function App() {
                     </button>
                   </>
                 ) : !mlEvaluationError && <p className="evaluation-caveat">Run the benchmark to see how the current model scores.</p>}
+                <div className="evaluation-history">
+                  <h4>Recent evaluation runs</h4>
+                  {mlEvaluationHistory.length ? (
+                    <div className="evaluation-history-list">
+                      {mlEvaluationHistory.map((run) => (
+                        <div className="evaluation-history-row" key={run.id}>
+                          <time>{formatDate(run.evaluated_at)}</time>
+                          <span>P {(run.metrics.precision * 100).toFixed(0)}%</span>
+                          <span>R {(run.metrics.recall * 100).toFixed(0)}%</span>
+                          <span>F1 {(run.metrics.f1 * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="evaluation-caveat">No saved runs yet. Run an evaluation to start a history.</p>}
+                </div>
               </section>
             </div>
 

@@ -72,6 +72,17 @@ def initialize_database(path: str | Path) -> None:
             """
         )
 
+        # Synthetic ML evaluation history for model comparison over time
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ml_evaluation_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                evaluated_at TEXT NOT NULL,
+                report_json TEXT NOT NULL
+            )
+            """
+        )
+
         # Check existing alert table columns and dynamically migrate if needed
         columns = {
             row["name"]
@@ -233,6 +244,29 @@ def list_analyst_notes(path: str | Path, alert_id: str) -> list[dict]:
             (alert_id,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def save_ml_evaluation(path: str | Path, report: dict[str, Any]) -> int:
+    """Persist one benchmark report and return its database ID."""
+    with connect_database(path) as connection:
+        cursor = connection.execute(
+            "INSERT INTO ml_evaluation_runs (evaluated_at, report_json) VALUES (?, ?)",
+            (report["evaluated_at"], json.dumps(report)),
+        )
+        return int(cursor.lastrowid)
+
+
+def list_ml_evaluations(path: str | Path, limit: int = 10) -> list[dict[str, Any]]:
+    """Return the most recent saved benchmark reports."""
+    with connect_database(path) as connection:
+        rows = connection.execute(
+            "SELECT id, evaluated_at, report_json FROM ml_evaluation_runs ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [
+        {"id": row["id"], **json.loads(row["report_json"])}
+        for row in rows
+    ]
 
 
 def save_events(path: str | Path, events: list[dict[str, Any]]) -> None:
