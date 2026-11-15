@@ -224,7 +224,9 @@ export default function App() {
       const response = await fetch('/api/ml/evaluation/history?limit=5')
       if (!response.ok) throw new Error(`Server returned ${response.status}`)
       const data = await response.json()
-      setMlEvaluationHistory(data.runs ?? [])
+      const runs = data.runs ?? []
+      setMlEvaluationHistory(runs)
+      setMlEvaluation((current) => current ?? runs[0] ?? null)
     } catch (err) {
       console.error('Could not load ML evaluation history', err)
     }
@@ -802,6 +804,11 @@ export default function App() {
                 {mlEvaluationError && <p className="evaluation-error">{mlEvaluationError}</p>}
                 {mlEvaluation ? (
                   <>
+                    {mlEvaluation.id && (
+                      <p className="evaluation-selected-run">
+                        Viewing saved run #{mlEvaluation.id} · {formatDate(mlEvaluation.evaluated_at)}
+                      </p>
+                    )}
                     <div className="evaluation-metrics">
                       {[
                         ['Precision', mlEvaluation.metrics.precision],
@@ -836,15 +843,21 @@ export default function App() {
                 ) : !mlEvaluationError && <p className="evaluation-caveat">Run the benchmark to see how the current model scores.</p>}
                 <div className="evaluation-history">
                   <h4>Recent evaluation runs</h4>
+                  <p className="evaluation-history-hint">Select a run to inspect its scores and export that report.</p>
                   {mlEvaluationHistory.length ? (
                     <div className="evaluation-history-list">
                       {mlEvaluationHistory.map((run) => (
-                        <div className="evaluation-history-row" key={run.id}>
+                        <button
+                          className={`evaluation-history-row ${mlEvaluation?.id === run.id ? 'selected' : ''}`}
+                          key={run.id}
+                          onClick={() => setMlEvaluation(run)}
+                          aria-pressed={mlEvaluation?.id === run.id}
+                        >
                           <time>{formatDate(run.evaluated_at)}</time>
                           <span>P {(run.metrics.precision * 100).toFixed(0)}%</span>
                           <span>R {(run.metrics.recall * 100).toFixed(0)}%</span>
                           <span>F1 {(run.metrics.f1 * 100).toFixed(0)}%</span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   ) : <p className="evaluation-caveat">No saved runs yet. Run an evaluation to start a history.</p>}

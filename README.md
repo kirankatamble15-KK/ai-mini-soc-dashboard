@@ -53,6 +53,8 @@ Milestone 18: analysts can export the latest synthetic ML evaluation as a CSV re
 
 Milestone 19: each synthetic ML evaluation is saved in SQLite and the AI / ML dashboard lists the five most recent runs, making it easier to compare results after model retraining. The history endpoint is `GET /api/ml/evaluation/history`.
 
+Milestone 20: analysts can select a saved evaluation run to review its full metrics, confusion matrix, and category results, and export the selected report as CSV.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

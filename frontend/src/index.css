@@ -138,9 +138,12 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .evaluation-export { margin-top: 10px; }
 .evaluation-history { margin-top: 16px; padding-top: 13px; border-top: 1px solid #233446; }
 .evaluation-history h4 { margin: 0 0 9px; color: #cfddec; font-size: 11px; }
+.evaluation-history-hint { margin: -4px 0 9px; color: #71859b; font-size: 9px; }
 .evaluation-history-list { display: grid; gap: 6px; }
-.evaluation-history-row { display: grid; grid-template-columns: minmax(130px, 1fr) repeat(3, 55px); gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #1f2e3d; border-radius: 5px; background: #0c141e; color: #aebdce; font: 9px 'DM Mono', monospace; }
+.evaluation-history-row { display: grid; grid-template-columns: minmax(130px, 1fr) repeat(3, 55px); gap: 8px; align-items: center; width: 100%; padding: 8px 10px; border: 1px solid #1f2e3d; border-radius: 5px; background: #0c141e; color: #aebdce; text-align: left; font: 9px 'DM Mono', monospace; cursor: pointer; }
+.evaluation-history-row:hover, .evaluation-history-row.selected { border-color: #397f70; background: #11231f; }
 .evaluation-history-row time { color: #8195aa; }
+.evaluation-selected-run { margin: 4px 0 10px; color: #8195aa; font: 9px 'DM Mono', monospace; }
 
 /* Incident investigation / analyst copilot */
 .incident-content { padding: 19px; }
