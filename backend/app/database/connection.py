@@ -302,6 +302,8 @@ def list_events(
     event_type: str | None = None,
     source_ip: str | None = None,
     search: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[dict[str, Any]]:
@@ -315,6 +317,12 @@ def list_events(
     if source_ip:
         query += " AND source_ip = ?"
         params.append(source_ip)
+    if since:
+        query += " AND timestamp >= ?"
+        params.append(since)
+    if until:
+        query += " AND timestamp <= ?"
+        params.append(until)
     if search:
         query += " AND (path LIKE ? OR username LIKE ? OR source_ip LIKE ?)"
         wildcard = f"%{search}%"

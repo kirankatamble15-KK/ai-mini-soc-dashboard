@@ -63,6 +63,19 @@ th:first-child,td:first-child { padding-left: 19px; }
 td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #b9c5d2; font-size: 11px; white-space: nowrap; }
 .alert-title { color: #e1e8ef; font-weight: 500; font-size: 12px; }
 .alert-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.alert-drilldown-button { padding: 2px 6px; border: 1px solid #2b4e5d; border-radius: 4px; background: #15232d; color: #91c9d4; font-size: 9px; cursor: pointer; }
+.alert-drilldown-button:hover { border-color: #5ee0bd; color: #c9fff1; }
+.related-events-cell { padding: 0 !important; white-space: normal; background: #0d1620; }
+.related-events-panel { padding: 13px 18px 16px; border-bottom: 1px solid #263747; }
+.related-events-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.related-events-heading h3 { margin: 0; color: #d2dfeb; font-size: 11px; }
+.related-events-heading p { margin: 4px 0 0; color: #8195aa; font-size: 9px; }
+.related-events-empty { margin: 0; padding: 12px; color: #91a2b4; font-size: 10px; }
+.related-events-empty.error-text { color: #f58e94; }
+.related-events-table-wrap { overflow-x: auto; }
+.related-events-table { width: 100%; min-width: 580px; border-collapse: collapse; }
+.related-events-table th { height: 29px; padding: 0 8px; font-size: 8px; }
+.related-events-table td { height: auto; padding: 7px 8px; font-size: 9px; white-space: normal; overflow-wrap: anywhere; }
 .alert-subtitle { color: #78899d; font: 9px 'DM Mono',monospace; text-transform: capitalize; }
 .mitre-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 3px; font: 9px 'DM Mono',monospace; text-decoration: none; color: #93b5d8; background: #172738; border: 1px solid #28425d; transition: all 0.15s ease; }
 .mitre-badge:hover { color: #c4e0ff; background: #223a54; border-color: #4b7db0; }

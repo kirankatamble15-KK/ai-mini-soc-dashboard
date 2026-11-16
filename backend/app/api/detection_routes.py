@@ -119,6 +119,8 @@ def get_logs():
         event_type=event_type,
         source_ip=source_ip,
         search=search,
+        since=request.args.get("since"),
+        until=request.args.get("until"),
         limit=limit,
         offset=offset,
     )

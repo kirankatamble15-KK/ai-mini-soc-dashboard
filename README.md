@@ -55,6 +55,8 @@ Milestone 19: each synthetic ML evaluation is saved in SQLite and the AI / ML da
 
 Milestone 20: analysts can select a saved evaluation run to review its full metrics, confusion matrix, and category results, and export the selected report as CSV.
 
+Milestone 21: analysts can expand an alert to inspect up to 20 raw events from the same source IP within the alert's first-seen/last-seen window. The Log Explorer API accepts optional `since` and `until` timestamps for this drill-down.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

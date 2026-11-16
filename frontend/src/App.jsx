@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -83,6 +83,10 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('overview')
   const [alerts, setAlerts] = useState([])
   const [logs, setLogs] = useState([])
+  const [drilldownAlertId, setDrilldownAlertId] = useState('')
+  const [alertEvents, setAlertEvents] = useState([])
+  const [alertEventsLoading, setAlertEventsLoading] = useState(false)
+  const [alertEventsError, setAlertEventsError] = useState('')
   const [stats, setStats] = useState(null)
   const [mlStatus, setMlStatus] = useState(null)
   const [mlEvaluation, setMlEvaluation] = useState(null)
@@ -153,6 +157,33 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error fetching logs', err)
+    }
+  }
+
+  async function viewAlertEvents(alert) {
+    if (drilldownAlertId === alert.id) {
+      setDrilldownAlertId('')
+      setAlertEvents([])
+      setAlertEventsError('')
+      return
+    }
+
+    setDrilldownAlertId(alert.id)
+    setAlertEvents([])
+    setAlertEventsError('')
+    setAlertEventsLoading(true)
+    try {
+      const params = new URLSearchParams({ source_ip: alert.source_ip, limit: '20' })
+      if (alert.first_seen) params.set('since', alert.first_seen)
+      if (alert.last_seen) params.set('until', alert.last_seen)
+      const response = await fetch(`/api/logs?${params.toString()}`)
+      if (!response.ok) throw new Error(`Server returned ${response.status}`)
+      const data = await response.json()
+      setAlertEvents(data.events ?? [])
+    } catch (err) {
+      setAlertEventsError('Could not load related events. Check that the Flask backend is running.')
+    } finally {
+      setAlertEventsLoading(false)
     }
   }
 
@@ -569,7 +600,8 @@ export default function App() {
                       </tr>
                     ) : (
                       filteredAlerts.map((alert) => (
-                        <tr key={alert.id}>
+                        <Fragment key={alert.id}>
+                        <tr>
                           <td>
                             <div className="alert-title">{alert.title}</div>
                             <div className="alert-meta">
@@ -591,6 +623,13 @@ export default function App() {
                                   ⚔ {alert.mitre_technique_id}
                                 </a>
                               )}
+                              <button
+                                className="alert-drilldown-button"
+                                aria-expanded={drilldownAlertId === alert.id}
+                                onClick={() => viewAlertEvents(alert)}
+                              >
+                                {drilldownAlertId === alert.id ? 'Hide events' : 'View related events'}
+                              </button>
                             </div>
                           </td>
                           <td>
@@ -631,6 +670,46 @@ export default function App() {
                           </td>
                           <td className="date-cell">{formatDate(alert.last_seen)}</td>
                         </tr>
+                        {drilldownAlertId === alert.id && (
+                          <tr className="related-events-row">
+                            <td colSpan="7" className="related-events-cell">
+                              <section className="related-events-panel" aria-label={`Related events for ${alert.title}`}>
+                                <div className="related-events-heading">
+                                  <div>
+                                    <h3>Related raw events</h3>
+                                    <p>Source IP {alert.source_ip} · within this alert’s time window · up to 20 events</p>
+                                  </div>
+                                  <span className="result-count">{alertEventsLoading ? 'LOADING' : `${alertEvents.length} EVENTS`}</span>
+                                </div>
+                                {alertEventsError ? (
+                                  <p className="related-events-empty error-text">{alertEventsError}</p>
+                                ) : alertEventsLoading ? (
+                                  <p className="related-events-empty">Loading related events…</p>
+                                ) : alertEvents.length === 0 ? (
+                                  <p className="related-events-empty">No raw events were saved for this source and time window.</p>
+                                ) : (
+                                  <div className="related-events-table-wrap">
+                                    <table className="related-events-table">
+                                      <thead><tr><th>TIME</th><th>TYPE</th><th>USER / METHOD</th><th>PATH</th><th>RESULT</th></tr></thead>
+                                      <tbody>
+                                        {alertEvents.map((event) => (
+                                          <tr key={event.id}>
+                                            <td>{formatDate(event.timestamp)}</td>
+                                            <td>{event.event_type}</td>
+                                            <td>{event.username || event.method || '—'}</td>
+                                            <td>{event.path || '—'}</td>
+                                            <td>{event.event_type === 'login' ? (event.success ? 'Success' : 'Failed') : `HTTP ${event.status_code ?? '—'}`}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </section>
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       ))
                     )}
                   </tbody>
