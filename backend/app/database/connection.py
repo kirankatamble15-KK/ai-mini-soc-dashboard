@@ -350,6 +350,39 @@ def count_events(path: str | Path) -> int:
         return row["cnt"] if row else 0
 
 
+def count_filtered_events(
+    path: str | Path,
+    event_type: str | None = None,
+    source_ip: str | None = None,
+    search: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> int:
+    """Count events matching the same filters used by the Log Explorer."""
+    query = "SELECT COUNT(*) AS cnt FROM events WHERE 1=1"
+    params: list[Any] = []
+    if event_type:
+        query += " AND event_type = ?"
+        params.append(event_type)
+    if source_ip:
+        query += " AND source_ip = ?"
+        params.append(source_ip)
+    if since:
+        query += " AND timestamp >= ?"
+        params.append(since)
+    if until:
+        query += " AND timestamp <= ?"
+        params.append(until)
+    if search:
+        query += " AND (path LIKE ? OR username LIKE ? OR source_ip LIKE ?)"
+        wildcard = f"%{search}%"
+        params.extend([wildcard, wildcard, wildcard])
+
+    with connect_database(path) as connection:
+        row = connection.execute(query, params).fetchone()
+        return row["cnt"] if row else 0
+
+
 def get_alert_by_id(path: str | Path, alert_id: str) -> dict | None:
     """Fetch a single alert by its UUID.  Returns None when not found."""
     with connect_database(path) as connection:

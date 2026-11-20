@@ -83,6 +83,9 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('overview')
   const [alerts, setAlerts] = useState([])
   const [logs, setLogs] = useState([])
+  const [logsTotal, setLogsTotal] = useState(0)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logsError, setLogsError] = useState('')
   const [drilldownAlertId, setDrilldownAlertId] = useState('')
   const [alertEvents, setAlertEvents] = useState([])
   const [alertEventsLoading, setAlertEventsLoading] = useState(false)
@@ -143,20 +146,25 @@ export default function App() {
     }
   }
 
-  async function loadLogs() {
+  async function loadLogs({ append = false } = {}) {
+    setLogsLoading(true)
+    setLogsError('')
     try {
       const params = new URLSearchParams()
       if (logFilterType) params.set('event_type', logFilterType)
       if (logSearchQuery.trim()) params.set('search', logSearchQuery.trim())
       params.set('limit', '100')
+      params.set('offset', append ? String(logs.length) : '0')
 
       const res = await fetch(`/api/logs?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLogs(data.events ?? [])
-      }
+      if (!res.ok) throw new Error(`Server returned ${res.status}`)
+      const data = await res.json()
+      setLogs((current) => append ? [...current, ...(data.events ?? [])] : (data.events ?? []))
+      setLogsTotal(data.total ?? 0)
     } catch (err) {
-      console.error('Error fetching logs', err)
+      setLogsError('Could not load logs. Check that the Flask backend is running.')
+    } finally {
+      setLogsLoading(false)
     }
   }
 
@@ -734,7 +742,7 @@ export default function App() {
                 <h2>Security Log Explorer</h2>
                 <p>Filter and inspect raw security events stored in database</p>
               </div>
-              <span className="result-count">{logs.length} LOGS RETRIEVED</span>
+              <span className="result-count">{logs.length} OF {logsTotal} LOGS</span>
             </div>
 
             <div className="filter-bar">
@@ -769,10 +777,12 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.length === 0 ? (
+                  {logsError ? (
+                    <tr><td className="empty-state log-error" colSpan="6">{logsError}</td></tr>
+                  ) : logs.length === 0 ? (
                     <tr>
                       <td className="empty-state" colSpan="6">
-                        No logs match current filters. Click "Ingest & Run Analysis" to load synthetic data.
+                        {logsLoading ? 'Loading security events…' : 'No logs match current filters. Click "Ingest & Run Analysis" to load synthetic data.'}
                       </td>
                     </tr>
                   ) : (
@@ -807,9 +817,13 @@ export default function App() {
 
             <div className="panel-footer">
               <span>
-                <span className="footer-dot" /> Showing top {logs.length} events
+                <span className="footer-dot" /> Showing {logs.length} of {logsTotal} matching events
               </span>
-              <span>Raw JSON payloads indexed</span>
+              {logs.length < logsTotal ? (
+                <button className="log-load-button" onClick={() => loadLogs({ append: true })} disabled={logsLoading}>
+                  {logsLoading ? 'Loading…' : 'Load more events'}
+                </button>
+              ) : <span>Raw JSON payloads indexed</span>}
             </div>
           </section>
         )}

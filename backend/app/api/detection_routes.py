@@ -11,6 +11,7 @@ from app.alerts.alert_manager import create_alerts
 from app.copilot.analyst import generate_incident_analysis
 from app.database.connection import (
     count_events,
+    count_filtered_events,
     add_analyst_note,
     get_alert_by_id,
     list_analyst_notes,
@@ -124,8 +125,21 @@ def get_logs():
         limit=limit,
         offset=offset,
     )
-    total = count_events(db_path)
-    return jsonify(total=total, returned=len(events), events=events)
+    total = count_filtered_events(
+        db_path,
+        event_type=event_type,
+        source_ip=source_ip,
+        search=search,
+        since=request.args.get("since"),
+        until=request.args.get("until"),
+    )
+    return jsonify(
+        total=total,
+        returned=len(events),
+        offset=offset,
+        has_more=offset + len(events) < total,
+        events=events,
+    )
 
 
 @detection_api.post("/api/logs/ingest")

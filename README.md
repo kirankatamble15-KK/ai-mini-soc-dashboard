@@ -57,6 +57,8 @@ Milestone 20: analysts can select a saved evaluation run to review its full metr
 
 Milestone 21: analysts can expand an alert to inspect up to 20 raw events from the same source IP within the alert's first-seen/last-seen window. The Log Explorer API accepts optional `since` and `until` timestamps for this drill-down.
 
+Milestone 22: the Log Explorer reports how many events match the active filters and lets analysts load older matching events in pages of 100. The API returns a filtered total and pagination metadata, so larger ingested datasets can be explored without loading every row at once.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
