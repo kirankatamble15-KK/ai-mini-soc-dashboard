@@ -59,6 +59,8 @@ Milestone 21: analysts can expand an alert to inspect up to 20 raw events from t
 
 Milestone 22: the Log Explorer reports how many events match the active filters and lets analysts load older matching events in pages of 100. The API returns a filtered total and pagination metadata, so larger ingested datasets can be explored without loading every row at once.
 
+Milestone 23: analysts can expand a Log Explorer entry to inspect the complete normalized event as formatted JSON, including fields that do not fit in the summary table.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

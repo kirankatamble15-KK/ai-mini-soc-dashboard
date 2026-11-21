@@ -115,6 +115,12 @@ td { height: 66px; padding: 8px 13px; border-bottom: 1px solid #1c2936; color: #
 .log-load-button:hover:not(:disabled) { border-color: #5ee0bd; color: #d0e0ed; }
 .log-load-button:disabled { opacity: .6; cursor: wait; }
 .log-error { color: #f58e94; }
+.log-raw-button { display: block; margin-top: 5px; padding: 0; border: 0; background: transparent; color: #71cdb7; font-size: 9px; cursor: pointer; }
+.log-raw-button:hover { color: #a6f5df; text-decoration: underline; }
+.log-raw-row td { height: auto; padding: 0 !important; white-space: normal; background: #0d1620; }
+.log-raw-panel { padding: 12px 18px 15px; border-bottom: 1px solid #263747; }
+.log-raw-panel h3 { margin: 0 0 8px; color: #cfddec; font-size: 11px; }
+.log-raw-panel pre { max-height: 360px; margin: 0; padding: 12px; overflow: auto; border: 1px solid #223446; border-radius: 5px; background: #0a1119; color: #9db7ca; font: 10px/1.5 'DM Mono', monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .alert-filter-bar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 12px 18px; background: #0e1622; border-bottom: 1px solid #202d3b; }
 .alert-filter-bar .filter-input { flex: 1 1 230px; width: auto; }
 .clear-filter-button { padding: 7px 10px; border: 1px solid #2a3b49; border-radius: 5px; background: #15232d; color: #9bb0c4; font-size: 10px; cursor: pointer; }

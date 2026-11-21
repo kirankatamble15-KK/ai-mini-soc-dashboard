@@ -83,6 +83,7 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('overview')
   const [alerts, setAlerts] = useState([])
   const [logs, setLogs] = useState([])
+  const [expandedLogId, setExpandedLogId] = useState(null)
   const [logsTotal, setLogsTotal] = useState(0)
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsError, setLogsError] = useState('')
@@ -787,28 +788,50 @@ export default function App() {
                     </tr>
                   ) : (
                     logs.map((log) => (
-                      <tr key={log.id}>
-                        <td className="date-cell">{formatDate(log.timestamp)}</td>
-                        <td>
-                          <span className={`badge ${log.event_type === 'login' ? 'login' : 'web'}`}>
-                            {log.event_type}
-                          </span>
-                        </td>
-                        <td className="mono">{log.source_ip}</td>
-                        <td className="mono">{log.username || log.method || '—'}</td>
-                        <td className="evidence-cell">{log.path || (log.username ? `Auth: ${log.username}` : '—')}</td>
-                        <td>
-                          {log.event_type === 'login' ? (
-                            <span className={`badge ${log.success ? 'status-ok' : 'status-err'}`}>
-                              {log.success ? 'SUCCESS' : 'FAILED'}
+                      <Fragment key={log.id}>
+                        <tr>
+                          <td className="date-cell">{formatDate(log.timestamp)}</td>
+                          <td>
+                            <span className={`badge ${log.event_type === 'login' ? 'login' : 'web'}`}>
+                              {log.event_type}
                             </span>
-                          ) : (
-                            <span className={`badge ${log.status_code < 400 ? 'status-ok' : 'status-err'}`}>
-                              HTTP {log.status_code}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="mono">{log.source_ip}</td>
+                          <td className="mono">{log.username || log.method || '—'}</td>
+                          <td className="evidence-cell">
+                            <div>{log.path || (log.username ? `Auth: ${log.username}` : '—')}</div>
+                            <button
+                              className="log-raw-button"
+                              aria-expanded={expandedLogId === log.id}
+                              aria-controls={`raw-event-${log.id}`}
+                              onClick={() => setExpandedLogId((current) => current === log.id ? null : log.id)}
+                            >
+                              {expandedLogId === log.id ? 'Hide raw JSON' : 'View raw JSON'}
+                            </button>
+                          </td>
+                          <td>
+                            {log.event_type === 'login' ? (
+                              <span className={`badge ${log.success ? 'status-ok' : 'status-err'}`}>
+                                {log.success ? 'SUCCESS' : 'FAILED'}
+                              </span>
+                            ) : (
+                              <span className={`badge ${log.status_code < 400 ? 'status-ok' : 'status-err'}`}>
+                                HTTP {log.status_code}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                        {expandedLogId === log.id && (
+                          <tr className="log-raw-row">
+                            <td colSpan="6">
+                              <section id={`raw-event-${log.id}`} className="log-raw-panel" aria-label="Raw event payload">
+                                <h3>Raw event data</h3>
+                                <pre>{JSON.stringify(log.raw, null, 2)}</pre>
+                              </section>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     ))
                   )}
                 </tbody>
