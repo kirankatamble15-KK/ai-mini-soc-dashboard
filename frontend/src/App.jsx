@@ -221,6 +221,46 @@ export default function App() {
     }
   }
 
+  async function simulateFailedLoginBurst() {
+    setAnalyzing(true)
+    setError('')
+    setActionError('')
+    setSuccessMsg('')
+
+    const startTime = Date.now()
+    const sampleEvents = Array.from({ length: 3 }, (_, index) => ({
+      timestamp: new Date(startTime + index * 1000).toISOString(),
+      event_type: 'login',
+      username: 'demo-user',
+      source_ip: '203.0.113.250',
+      success: false,
+    }))
+
+    try {
+      const response = await fetch('/api/logs/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleEvents),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'The sample events could not be ingested')
+
+      const generatedAlerts = data.alerts ?? []
+      const bruteForceDetected = generatedAlerts.some((alert) => alert.rule === 'repeated_failed_logins')
+      const mlAlertCount = generatedAlerts.filter((alert) => alert.rule === 'ml_behavioral_anomaly').length
+      const alertSummary = `${generatedAlerts.length} alert${generatedAlerts.length === 1 ? '' : 's'} saved in total, including ${mlAlertCount} ML anomaly alert${mlAlertCount === 1 ? '' : 's'}.`
+      setSuccessMsg(bruteForceDetected
+        ? `Demo complete: the brute-force rule caught the 3 failed logins. ${alertSummary}`
+        : `Added 3 synthetic failed logins from the test IP, but no brute-force alert was returned. ${alertSummary}`)
+      await loadAlerts()
+      if (currentTab === 'logs') await loadLogs()
+    } catch (err) {
+      setActionError(`Could not run the demo (${err.message}). Check that the Flask backend is running.`)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   async function handleRetrainModel() {
     setRetraining(true)
     setError('')
@@ -427,7 +467,7 @@ export default function App() {
             </strong>
           </div>
           <div className="topbar-right">
-            <span className="live-dot" /> DETECTION & ML ENGINE ACTIVE
+            <span className="live-dot" /> ON-DEMAND DETECTION & ML
             <div className="avatar">SOC</div>
           </div>
         </header>
@@ -446,7 +486,7 @@ export default function App() {
             </h1>
             <p>
               {currentTab === 'overview'
-                ? 'Correlated detection rules, sliding time-windows, and unsupervised ML anomaly detection.'
+                ? 'Analyze sample logs or simulate failed logins to see how detection rules create alerts.'
                 : currentTab === 'logs'
                 ? 'Search, inspect, and drill-down into ingested authentication and web logs.'
                 : currentTab === 'ml'
@@ -460,8 +500,18 @@ export default function App() {
               onClick={runDemoAnalysis}
               disabled={analyzing}
             >
-              <span>▶</span> {analyzing ? 'Analyzing Logs…' : 'Ingest & Run Analysis'}
+              <span>▶</span> {analyzing ? 'Processing…' : 'Ingest & Run Analysis'}
             </button>
+            {currentTab === 'overview' && (
+              <button
+                className="demo-button"
+                onClick={simulateFailedLoginBurst}
+                disabled={analyzing}
+                title="Adds three fake failed logins from a reserved test IP to the local demo database."
+              >
+                {analyzing ? 'Running demo…' : 'Try failed-login demo'}
+              </button>
+            )}
             <button
               className="refresh-button"
               onClick={() => {

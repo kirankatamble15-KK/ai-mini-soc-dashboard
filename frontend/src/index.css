@@ -32,10 +32,13 @@ button { font: inherit; }
 .eyebrow { color: #5ee0bd; margin-bottom: 9px; }
 .page-heading h1 { font-size: 27px; line-height: 1.2; letter-spacing: -.6px; margin: 0; font-weight: 600; }
 .page-heading p,.panel-heading p { margin: 7px 0 0; color: #8391a4; font-size: 12px; }
-.header-actions { display: flex; gap: 10px; align-items: center; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; align-items: center; }
 .primary-button { background: #164038; color: #7af2d3; border: 1px solid #2e7164; border-radius: 6px; padding: 9px 14px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s ease; }
 .primary-button:hover { background: #1b5349; border-color: #5ee0bd; color: #ffffff; }
 .primary-button:disabled { opacity: .6; cursor: wait; }
+.demo-button { background: #172638; color: #a7c7e4; border: 1px solid #304b66; border-radius: 6px; padding: 9px 12px; font-size: 11px; cursor: pointer; transition: all 0.15s ease; }
+.demo-button:hover:not(:disabled) { background: #1f354b; border-color: #78acd6; color: #e1f1ff; }
+.demo-button:disabled { opacity: .6; cursor: wait; }
 .refresh-button { background: #15232d; color: #c5d1dc; border: 1px solid #2a3b49; border-radius: 6px; padding: 9px 12px; font-size: 11px; cursor: pointer; transition: all 0.15s ease; }
 .refresh-button:hover { background: #1a3039; border-color: #4b827e; }
 .refresh-button:disabled { opacity: .6; cursor: wait; }

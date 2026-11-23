@@ -61,6 +61,8 @@ Milestone 22: the Log Explorer reports how many events match the active filters 
 
 Milestone 23: analysts can expand a Log Explorer entry to inspect the complete normalized event as formatted JSON, including fields that do not fit in the summary table.
 
+Milestone 24: the overview includes a safe, on-demand failed-login simulation. It submits three synthetic failures from a reserved documentation IP to the local ingest API, allowing learners to see the brute-force rule create an alert without connecting to real systems.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:
