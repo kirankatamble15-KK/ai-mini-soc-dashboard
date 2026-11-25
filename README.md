@@ -63,6 +63,8 @@ Milestone 23: analysts can expand a Log Explorer entry to inspect the complete n
 
 Milestone 24: the overview includes a safe, on-demand failed-login simulation. It submits three synthetic failures from a reserved documentation IP to the local ingest API, allowing learners to see the brute-force rule create an alert without connecting to real systems.
 
+Milestone 25: the overview explains the demo in three plain-language steps—add sample activity, detect suspicious patterns, and review alert evidence—and states that analysis runs on demand against synthetic data rather than monitoring a live network.
+
 ## Run locally
 
 From the `backend` directory, create a virtual environment, install `requirements.txt`, then run:

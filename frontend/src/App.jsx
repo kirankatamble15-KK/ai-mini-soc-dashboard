@@ -532,6 +532,40 @@ export default function App() {
         {/* Overview Tab Content */}
         {currentTab === 'overview' && (
           <>
+            <section className="how-it-works-panel" aria-labelledby="how-it-works-title">
+              <div className="how-it-works-heading">
+                <div>
+                  <span className="how-it-works-kicker">QUICK GUIDE</span>
+                  <h2 id="how-it-works-title">How this demo works</h2>
+                </div>
+                <span className="demo-data-badge">SYNTHETIC DATA</span>
+              </div>
+              <div className="how-it-works-steps">
+                <article>
+                  <span className="how-step-number">01</span>
+                  <div>
+                    <h3>Add activity</h3>
+                    <p>Analyze the included sample logs or add three fake failed logins with the demo button above.</p>
+                  </div>
+                </article>
+                <article>
+                  <span className="how-step-number">02</span>
+                  <div>
+                    <h3>Look for patterns</h3>
+                    <p>Detection rules and the ML model check the events and raise possible security alerts.</p>
+                  </div>
+                </article>
+                <article>
+                  <span className="how-step-number">03</span>
+                  <div>
+                    <h3>Review the evidence</h3>
+                    <p>Inspect related logs, open raw event data, and record your investigation notes.</p>
+                  </div>
+                </article>
+              </div>
+              <p className="how-it-works-note">This is a local learning demo. It analyzes data when you click a button; it does not monitor or protect a real network.</p>
+            </section>
+
             <section className="stat-grid" aria-label="Alert summary">
               <article className="stat-card">
                 <div className="stat-label">
