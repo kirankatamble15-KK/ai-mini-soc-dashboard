@@ -2,6 +2,12 @@
 
 A learning project for ingesting synthetic security logs, detecting suspicious activity, and presenting alerts in a small analyst dashboard.
 
+## Project status
+
+The learning MVP is complete: it accepts synthetic authentication and web events, runs explainable detection rules and a benchmarked Isolation Forest, stores findings locally, and provides an analyst dashboard for reviewing them. It runs on demand and is not a live monitoring or production security system.
+
+See [the project walkthrough](docs/PROJECT_WALKTHROUGH.md) for a plain-language explanation and a short demo script.
+
 ## Build roadmap
 
 1. **Foundation** — Flask API, configuration, and a documented event format.
@@ -9,7 +15,7 @@ A learning project for ingesting synthetic security logs, detecting suspicious a
 3. **Detections** — explainable rules for brute force attempts, SQL injection patterns, and suspicious requests.
 4. **Alerts and storage** — persist events and alerts, then expose useful API endpoints.
 5. **Dashboard** — browse alerts, logs, and incident summaries.
-6. **Hardening and extensions** — authentication, threat intelligence, and evaluated anomaly detection.
+6. **Optional extensions after the learning MVP** — login protection, external threat-intelligence feeds, and continuous ingestion from authorized live log sources. Synthetic ML evaluation is already included.
 
 We will use synthetic logs while developing. Only ingest logs from systems you own or are authorized to monitor. Rule-based detection comes before machine learning so each alert has a clear reason.
 
@@ -19,7 +25,7 @@ Milestone 1: initial Flask service scaffold.
 
 Milestone 2: JSON Lines sample authentication log, parser, and file reader. Each event includes `timestamp`, `event_type`, `username`, `source_ip`, and `success`.
 
-Milestone 3: first rule detects three or more failed logins from the same IP in one analysis batch. The current rule does not yet apply a time window.
+Milestone 3: the brute-force rule detects three or more failed logins from the same IP within a five-minute sliding time window.
 
 Milestone 4: `GET /api/demo/analysis` reads the bundled synthetic log, runs the parser and detection rule, and returns a JSON summary.
 
